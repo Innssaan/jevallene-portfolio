@@ -1,14 +1,105 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Command } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
 
-const SHORTCUTS = [
-  { keys: ["⌘", "K"], label: "Navigasi cepat" },
-  { keys: ["G", "P"], label: "Buka proyek" },
-  { keys: ["T"], label: "Ganti tema" },
-];
+const COLOR_THEMES = ["crimson", "ocean", "emerald", "violet", "amber"] as const;
 
 export default function Bento25() {
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const lastKeyRef = useRef<{ key: string; at: number } | null>(null);
+
+  const flash = useCallback((msg: string) => {
+    setFeedback(msg);
+    window.setTimeout(() => setFeedback(null), 1600);
+  }, []);
+
+  const jumpTo = useCallback(
+    (selector: string, msg: string) => {
+      const el = document.querySelector(selector);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        flash(msg);
+      }
+    },
+    [flash]
+  );
+
+  const cycleAccentTheme = useCallback(() => {
+    const root = document.documentElement;
+    const current = root.getAttribute("data-color-theme") ?? "crimson";
+    const idx = COLOR_THEMES.indexOf(current as (typeof COLOR_THEMES)[number]);
+    const next = COLOR_THEMES[(idx + 1) % COLOR_THEMES.length];
+    if (next === "crimson") {
+      root.removeAttribute("data-color-theme");
+    } else {
+      root.setAttribute("data-color-theme", next);
+    }
+    try {
+      window.localStorage.setItem("jevallene-color-theme", next);
+    } catch {
+      // ignore storage errors
+    }
+    flash(`Tema aksen: ${next}`);
+  }, [flash]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        jumpTo("#kontak", "Menuju Kontak");
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      const now = Date.now();
+      if (key === "p" && lastKeyRef.current?.key === "g" && now - lastKeyRef.current.at < 900) {
+        lastKeyRef.current = null;
+        jumpTo("#proyek", "Menuju Proyek");
+        return;
+      }
+
+      if (key === "t" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        cycleAccentTheme();
+        return;
+      }
+
+      lastKeyRef.current = { key, at: now };
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [cycleAccentTheme, jumpTo]);
+
+  const shortcuts = [
+    {
+      keys: ["⌘", "K"],
+      label: "Ke kontak",
+      onRun: () => jumpTo("#kontak", "Menuju Kontak"),
+    },
+    {
+      keys: ["G", "P"],
+      label: "Buka proyek",
+      onRun: () => jumpTo("#proyek", "Menuju Proyek"),
+    },
+    {
+      keys: ["T"],
+      label: "Ganti aksen",
+      onRun: cycleAccentTheme,
+    },
+  ];
+
   return (
     <GlowCard
       className="h-full min-h-[380px]"
@@ -19,16 +110,21 @@ export default function Bento25() {
           <Command className="size-3.5 text-accent" />
           Aksesibilitas
         </span>
-        <span className="font-mono text-[11px] text-muted-foreground">KBD</span>
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {feedback ?? "KBD"}
+        </span>
       </div>
 
       <div className="my-auto flex flex-col gap-3 py-6">
-        {SHORTCUTS.map((item) => (
-          <motion.div
+        {shortcuts.map((item) => (
+          <motion.button
             key={item.label}
+            type="button"
+            onClick={item.onRun}
             whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.985 }}
             transition={{ type: "spring", stiffness: 320, damping: 24 }}
-            className="flex items-center justify-between rounded-xl border border-[#D4D4D8] bg-white px-3.5 py-2.5 dark:border-[#3A3A44] dark:bg-[#1A1A1F]"
+            className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-[#D4D4D8] bg-white px-3.5 py-2.5 text-left transition-colors hover:border-accent/60 dark:border-[#3A3A44] dark:bg-[#1A1A1F] dark:hover:border-accent/70"
           >
             <span className="text-xs font-medium text-foreground">
               {item.label}
@@ -43,12 +139,12 @@ export default function Bento25() {
                 </kbd>
               ))}
             </span>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Mendukung navigasi keyboard penuh &amp; preferensi reduced motion.
+        Tekan pintasan keyboard di atas atau klik langsung untuk mencoba.
       </p>
     </GlowCard>
   );

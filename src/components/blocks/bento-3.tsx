@@ -1,16 +1,58 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Terminal } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
 
-const CHECKS = [
-  { id: "ts", label: "Strict TypeScript", meta: "0 errors" },
-  { id: "a11y", label: "Keyboard & ARIA", meta: "WCAG AA" },
-  { id: "bundle", label: "Tree-shaken Build", meta: "< 95 kB" },
-];
+interface CheckItem {
+  id: string;
+  label: string;
+  meta: string;
+  detail: string;
+}
 
 export default function Bento3() {
   const [selected, setSelected] = useState<string>("ts");
+  const [latestSha, setLatestSha] = useState<string>("main");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://api.github.com/repos/Innssaan/jevallene-portfolio/commits/main", {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && typeof data?.sha === "string") {
+          setLatestSha(data.sha.slice(0, 7));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const checks: CheckItem[] = [
+    {
+      id: "ts",
+      label: "Strict TypeScript",
+      meta: "tsc -b",
+      detail: "Pemeriksaan tipe statis penuh sebelum bundling produksi Vite.",
+    },
+    {
+      id: "a11y",
+      label: "Code-split Chunks",
+      meta: "Vite 7",
+      detail: "Lazy loading per seksi agar waktu muat awal tetap ringan dan responsif.",
+    },
+    {
+      id: "deploy",
+      label: "Auto Deploy Vercel",
+      meta: latestSha,
+      detail: `Sinkron otomatis dari branch main GitHub (${latestSha}) ke produksi.`,
+    },
+  ];
+
+  const activeCheck = checks.find((c) => c.id === selected) ?? checks[0];
 
   return (
     <GlowCard
@@ -26,7 +68,7 @@ export default function Bento3() {
       </div>
 
       <div className="my-auto flex flex-col gap-2 py-6">
-        {CHECKS.map((item) => {
+        {checks.map((item) => {
           const active = selected === item.id;
           return (
             <motion.button
@@ -59,7 +101,7 @@ export default function Bento3() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Arsitektur kode bersih, terukur, dan terverifikasi sebelum rilis produksi.
+        {activeCheck.detail}
       </p>
     </GlowCard>
   );

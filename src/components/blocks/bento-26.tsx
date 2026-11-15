@@ -3,12 +3,26 @@ import { ArrowUpRight, BookOpen } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
 
 const TOPICS = [
-  { title: "Design Engineering", meta: "Motion & Micro-interactions" },
-  { title: "React 19 Patterns", meta: "Actions & Concurrent UI" },
-  { title: "Web Performance", meta: "Zero-CLS Layouts" },
+  {
+    title: "Motion & 3D Web",
+    meta: "Three.js Physics & Micro-interactions",
+    href: "https://motion.dev",
+  },
+  {
+    title: "React 19 Patterns",
+    meta: "Actions & Concurrent UI",
+    href: "https://react.dev",
+  },
+  {
+    title: "Web Performance",
+    meta: "Core Web Vitals & Zero-CLS",
+    href: "https://web.dev/explore/metrics",
+  },
 ];
 
 export default function Bento26() {
+  const year = new Date().getFullYear();
+
   return (
     <GlowCard
       className="h-full min-h-[380px]"
@@ -19,13 +33,16 @@ export default function Bento26() {
           <BookOpen className="size-3.5 text-accent" />
           Sedang Dieksplorasi
         </span>
-        <span className="font-mono text-[11px] text-muted-foreground">2026</span>
+        <span className="font-mono text-[11px] text-muted-foreground">{year}</span>
       </div>
 
       <div className="my-auto flex flex-col divide-y divide-border py-4">
         {TOPICS.map((topic) => (
-          <motion.div
+          <motion.a
             key={topic.title}
+            href={topic.href}
+            target="_blank"
+            rel="noopener noreferrer"
             whileHover={{ x: 3 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="group/row flex items-center justify-between py-3.5"
@@ -39,7 +56,7 @@ export default function Bento26() {
               </p>
             </div>
             <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover/row:translate-x-0.5 group-hover/row:-translate-y-0.5 group-hover/row:text-accent" />
-          </motion.div>
+          </motion.a>
         ))}
       </div>
 
