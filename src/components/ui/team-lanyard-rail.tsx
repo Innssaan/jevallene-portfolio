@@ -569,11 +569,54 @@ export function TeamLanyardRail({
     const c2y = by + sag * 0.78 - Math.min(0, dy) * 0.12;
 
     const pinch = st >= 0 ? 1 - clamp(st / 680, 0, 0.18) : 1 + clamp(-st / 180, 0, 0.08);
-    const cosTwist = Math.abs(Math.cos(((totalY * 0.5) * Math.PI) / 180));
-    const twistScale = 0.34 + 0.66 * cosTwist;
-    const ribbonW = g.strapW * pinch * twistScale;
-    const ribbonShade = (0.72 + 0.28 * cosTwist).toFixed(2);
-    const curveD = `M ${ax.toFixed(1)} ${ay.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`;
+    const halfBase = (g.strapW / 2) * pinch;
+
+    // Sample 24 points along Cubic Bezier to render seamless helical twist ("tali terlilit") + consistent center stripe
+    const SAMPLES = 24;
+    const ptsC: { x: number; y: number }[] = [];
+    const normals: { nx: number; ny: number }[] = [];
+    const hws: number[] = [];
+
+    for (let k = 0; k <= SAMPLES; k++) {
+      const t = k / SAMPLES;
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const t2 = t * t;
+      const px = mt2 * mt * ax + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t2 * t * bx;
+      const py = mt2 * mt * ay + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t2 * t * by;
+
+      const dxdt = 3 * mt2 * (c1x - ax) + 6 * mt * t * (c2x - c1x) + 3 * t2 * (bx - c2x);
+      const dydt = 3 * mt2 * (c1y - ay) + 6 * mt * t * (c2y - c1y) + 3 * t2 * (by - c2y);
+      const tLen = Math.hypot(dxdt, dydt);
+      const nx = tLen > 0.001 ? -dydt / tLen : -1;
+      const ny = tLen > 0.001 ? dxdt / tLen : 0;
+
+      const segRad = ((totalY * t) * Math.PI) / 180;
+      const cosA = Math.abs(Math.cos(segRad));
+      const wScale = Math.max(0.12, cosA);
+
+      ptsC.push({ x: px, y: py });
+      normals.push({ nx, ny });
+      hws.push(halfBase * wScale);
+    }
+
+    const buildRibbonPath = (ratio: number) => {
+      let forward = "";
+      let backward = "";
+      for (let k = 0; k <= SAMPLES; k++) {
+        const c = ptsC[k]!;
+        const nm = normals[k]!;
+        const hw = hws[k]! * ratio;
+        forward += `${k === 0 ? "M" : "L"} ${(c.x - nm.nx * hw).toFixed(1)} ${(c.y - nm.ny * hw).toFixed(1)} `;
+      }
+      for (let k = SAMPLES; k >= 0; k--) {
+        const c = ptsC[k]!;
+        const nm = normals[k]!;
+        const hw = hws[k]! * ratio;
+        backward += `L ${(c.x + nm.nx * hw).toFixed(1)} ${(c.y + nm.ny * hw).toFixed(1)} `;
+      }
+      return `${forward}${backward}Z`;
+    };
 
     const shadowPath = strapShadows.current[i];
     if (shadowPath) {
@@ -581,13 +624,14 @@ export function TeamLanyardRail({
         "d",
         `M ${(ax + 3 * g.u).toFixed(1)} ${(ay + 4).toFixed(1)} C ${(c1x + 3 * g.u).toFixed(1)} ${(c1y + 4).toFixed(1)}, ${(c2x + 3 * g.u).toFixed(1)} ${(c2y + 4).toFixed(1)}, ${(bx + 3 * g.u).toFixed(1)} ${(by + 4).toFixed(1)}`
       );
-      shadowPath.setAttribute("stroke-width", ribbonW.toFixed(2));
+      shadowPath.setAttribute("stroke-width", (g.strapW * pinch).toFixed(2));
     }
 
+    const avgTwist = Math.abs(Math.cos(((totalY * 0.5) * Math.PI) / 180));
+    const ribbonShade = (0.7 + 0.3 * avgTwist).toFixed(2);
     const updateLayer = (el: SVGPathElement | null | undefined, ratio: number, shade = false) => {
       if (!el) return;
-      el.setAttribute("d", curveD);
-      el.setAttribute("stroke-width", Math.max(0.8, ribbonW * ratio).toFixed(2));
+      el.setAttribute("d", buildRibbonPath(ratio));
       if (shade) el.style.filter = `brightness(${ribbonShade})`;
     };
 
@@ -1145,7 +1189,7 @@ export function TeamLanyardRail({
         s.vx[i] = seamless ? 0 : clamp(p.v * 950, -1100, 1100);
         s.vst[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
         s.vsw[i] = (s.vsw[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(-p.v * 70, -90, 90) : 0);
-        s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(p.v * 140, -180, 180) : 0);
+        s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.14 ? clamp(p.v * 420, -520, 520) : 0);
         s.vrx[i] = (s.vrx[i] ?? 0) + clamp(-p.vy * 140, -140, 140) + pullRatio * 45;
         s.trx[i] = 0;
         s.ttiltY[i] = 0;
@@ -1167,7 +1211,7 @@ export function TeamLanyardRail({
           const pullRatio = clamp(pulled / Math.max(1, L.geo.maxStretch), 0, 1);
           s.vst[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
           s.vsw[i] = (s.vsw[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(-p.v * 70, -90, 90) : 0);
-          s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(p.v * 140, -180, 180) : 0);
+          s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.14 ? clamp(p.v * 420, -520, 520) : 0);
           s.vrx[i] = (s.vrx[i] ?? 0) + clamp(-p.vy * 140, -140, 140) + pullRatio * 45;
           s.trx[i] = 0;
           s.ttiltY[i] = 0;
@@ -1338,43 +1382,28 @@ export function TeamLanyardRail({
                     />
                     <path
                       ref={(node) => { strapBases.current[i] = node; }}
-                      fill="none"
-                      stroke="#09090b"
-                      strokeWidth={g.strapW}
-                      strokeLinecap="butt"
-                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      fill="#09090b"
+                      d={`M ${(W / 2 - g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapShoulders.current[i] = node; }}
-                      fill="none"
-                      stroke="#27272a"
-                      strokeWidth={g.strapW * 0.72}
-                      strokeLinecap="butt"
-                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      fill="#27272a"
+                      d={`M ${(W / 2 - g.strapW * 0.36).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.36).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.36).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.36).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapAccentDarks.current[i] = node; }}
-                      fill="none"
-                      stroke="var(--accent-dark)"
-                      strokeWidth={g.strapW * 0.46}
-                      strokeLinecap="butt"
-                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      fill="var(--accent-dark)"
+                      d={`M ${(W / 2 - g.strapW * 0.23).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.23).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.23).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.23).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapAccentBrights.current[i] = node; }}
-                      fill="none"
-                      stroke="var(--accent-bright)"
-                      strokeWidth={g.strapW * 0.24}
-                      strokeLinecap="butt"
-                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      fill="var(--accent-bright)"
+                      d={`M ${(W / 2 - g.strapW * 0.12).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.12).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.12).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.12).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapSheens.current[i] = node; }}
-                      fill="none"
-                      stroke="rgba(255,255,255,0.22)"
-                      strokeWidth={Math.max(1, g.strapW * 0.1)}
-                      strokeLinecap="butt"
-                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      fill="rgba(255,255,255,0.22)"
+                      d={`M ${(W / 2 - g.strapW * 0.05).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.05).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.05).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.05).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                   </svg>
                   {/* HD Brushed Steel Swivel Loop */}
