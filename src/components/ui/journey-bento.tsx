@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Briefcase, Camera, Code2, GraduationCap, Maximize2, Sparkles } from "lucide-react";
+import { Briefcase, Camera, Code2, Cpu, Gamepad2, GraduationCap, Maximize2, Sparkles } from "lucide-react";
 import { GlowCard, type GlowAccent } from "@/components/ui/glow-card";
 import {
   DetailLightboxModal,
@@ -184,6 +184,84 @@ const JOURNEY_ITEMS: JourneyItem[] = [
       en: "Combining visual composition, lighting, and cinematic storytelling.",
     },
     icon: Camera,
+  },
+  {
+    id: "lua-game-dev",
+    period: { id: "2021 — Sekarang", en: "2021 — Present" },
+    title: { id: "Lua & Game Programming", en: "Lua & Game Programming" },
+    place: { id: "Game Scripting & Systems", en: "Game Scripting & Systems" },
+    description: {
+      id: "Mengembangkan mekanik gameplay, sistem event client-server, dan skrip interaktif berbasis .lua / Luau.",
+      en: "Developing gameplay mechanics, client-server event systems, and interactive scripts powered by .lua / Luau.",
+    },
+    fullDescription: {
+      id: "Menguasai pemrograman game menggunakan bahasa .lua (termasuk Luau, FiveM scripting, dan LÖVE2D). Terbiasa merancang state machine gameplay, logika fisika & interaksi objek, optimasi loop frame-rate, serta sinkronisasi data antara client dan server secara real-time.",
+      en: "Proficient in game programming with .lua (including Luau, FiveM scripting, and LÖVE2D). Experienced in designing gameplay state machines, object physics & interaction logic, frame-loop optimization, and real-time client-server state synchronization.",
+    },
+    highlights: {
+      id: [
+        "Scripting sistem gameplay, inventory, UI HUD, dan AI behavior berbasis .lua",
+        "Sinkronisasi event client-server yang aman dari exploit dan rendah latensi",
+        "Optimasi memory & tick loop agar gameplay tetap mulus di 60+ FPS",
+        "Integrasi modular dengan resource game engine dan REST/database eksternal",
+      ],
+      en: [
+        "Scripting gameplay systems, inventories, HUDs, and AI behaviors in .lua",
+        "Low-latency, exploit-resistant client-server event synchronization",
+        "Memory and tick-loop optimization for smooth 60+ FPS gameplay",
+        "Modular integration with game engine resources and external REST/databases",
+      ],
+    },
+    image:
+      "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Pengembangan game dan scripting Lua",
+    gradientFallback: "from-indigo-950 via-[#1b1636] to-black",
+    accent: "indigo",
+    tags: [".lua", "Luau", "Game Scripting"],
+    highlight: {
+      id: "Membangun logika gameplay dan skrip server-client real-time dengan .lua.",
+      en: "Building real-time gameplay logic and client-server scripts with .lua.",
+    },
+    icon: Gamepad2,
+  },
+  {
+    id: "iot-embedded",
+    period: { id: "2022 — Sekarang", en: "2022 — Present" },
+    title: { id: "IoT & Embedded Systems", en: "IoT & Embedded Systems" },
+    place: { id: "Hardware, Sensor & Jaringan", en: "Hardware, Sensors & Networking" },
+    description: {
+      id: "Merancang sistem Internet of Things dengan C/C++ (Arduino, ESP32), MicroPython, protokol MQTT, dan integrasi sensor.",
+      en: "Building Internet of Things systems with C/C++ (Arduino, ESP32), MicroPython, MQTT protocols, and sensor integration.",
+    },
+    fullDescription: {
+      id: "Berpengalaman membangun proyek IoT dan sistem tertanam (embedded) menggunakan bahasa pemrograman C, C++ (Arduino/ESP-IDF), MicroPython, serta scripting pendukung seperti Python dan Node.js untuk gateway. Mencakup pembacaan sensor real-time, komunikasi MQTT/HTTP/WebSocket, kontrol aktuator, dan dashboard monitoring web.",
+      en: "Experienced in building IoT and embedded projects using C, C++ (Arduino/ESP-IDF), MicroPython, and supporting gateway languages like Python and Node.js. Covers real-time sensor telemetry, MQTT/HTTP/WebSocket communication, actuator control, and live web monitoring dashboards.",
+    },
+    highlights: {
+      id: [
+        "Pemrograman mikrokontroler ESP32, ESP8266, dan Arduino dengan C/C++ & MicroPython",
+        "Komunikasi data real-time melalui protokol MQTT, HTTP REST, dan WebSocket",
+        "Kalibrasi & akuisisi data berbagai sensor lingkungan, relay, dan modul nirkabel",
+        "Menghubungkan perangkat keras IoT langsung ke dashboard monitoring web",
+      ],
+      en: [
+        "Programming ESP32, ESP8266, and Arduino microcontrollers in C/C++ & MicroPython",
+        "Real-time telemetry over MQTT, HTTP REST, and WebSocket protocols",
+        "Sensor calibration, relay control, and wireless hardware integration",
+        "Connecting physical IoT hardware directly to live web monitoring dashboards",
+      ],
+    },
+    image:
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Mikrokontroler, sirkuit elektronik, dan sistem IoT",
+    gradientFallback: "from-emerald-950 via-[#0e2620] to-black",
+    accent: "emerald",
+    tags: ["C / C++", "MicroPython", "ESP32 & MQTT"],
+    highlight: {
+      id: "Integrasi mikrokontroler, sensor, dan protokol jaringan IoT ke web.",
+      en: "Connecting microcontrollers, sensors, and IoT network protocols to the web.",
+    },
+    icon: Cpu,
   },
 ];
 
