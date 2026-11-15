@@ -144,8 +144,8 @@ function geometry(W: number, items: LanyardMember[], seamless = false) {
   const railY = seamless ? 0 : 14 + railR;
   const ring = 9 * u;
   const pivotY = railY + ring * 0.8;
-  const strapW = Math.max(8, 11 * u);
-  const crimp = 6 * u;
+  const strapW = Math.max(14, 19 * u);
+  const crimp = 8 * u;
   const clipH = 13 * u;
   const clipW = 30 * u;
   const base = (seamless ? 96 : 56) * u;
@@ -462,6 +462,8 @@ export function TeamLanyardRail({
   const strapAccentDarks = React.useRef([] as (SVGPathElement | null)[]);
   const strapAccentBrights = React.useRef([] as (SVGPathElement | null)[]);
   const strapSheens = React.useRef([] as (SVGPathElement | null)[]);
+  const strapCenterlines = React.useRef([] as (SVGPathElement | null)[]);
+  const strapClipPaths = React.useRef([] as (SVGPathElement | null)[]);
   const swivels = React.useRef([] as (SVGSVGElement | null)[]);
   const hangs = React.useRef([] as (HTMLSpanElement | null)[]);
   const buttons = React.useRef([] as (HTMLButtonElement | null)[]);
@@ -571,8 +573,9 @@ export function TeamLanyardRail({
     const pinch = st >= 0 ? 1 - clamp(st / 680, 0, 0.18) : 1 + clamp(-st / 180, 0, 0.08);
     const halfBase = (g.strapW / 2) * pinch;
 
-    // Sample 24 points along Cubic Bezier to render seamless helical twist ("tali terlilit") + consistent center stripe
+    // Sample 24 points along Cubic Bezier with a natural 165deg resting helical twist ("tali terlilit")
     const SAMPLES = 24;
+    const twistTotal = 165 + totalY;
     const ptsC: { x: number; y: number }[] = [];
     const normals: { nx: number; ny: number }[] = [];
     const hws: number[] = [];
@@ -591,9 +594,9 @@ export function TeamLanyardRail({
       const nx = tLen > 0.001 ? -dydt / tLen : -1;
       const ny = tLen > 0.001 ? dxdt / tLen : 0;
 
-      const segRad = ((totalY * t) * Math.PI) / 180;
+      const segRad = ((twistTotal * t) * Math.PI) / 180;
       const cosA = Math.abs(Math.cos(segRad));
-      const wScale = Math.max(0.12, cosA);
+      const wScale = Math.max(0.14, cosA);
 
       ptsC.push({ x: px, y: py });
       normals.push({ nx, ny });
@@ -618,6 +621,14 @@ export function TeamLanyardRail({
       return `${forward}${backward}Z`;
     };
 
+    const curveD = `M ${ax.toFixed(1)} ${ay.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`;
+    const centerlineEl = strapCenterlines.current[i];
+    if (centerlineEl) centerlineEl.setAttribute("d", curveD);
+
+    const baseRibbonD = buildRibbonPath(1);
+    const clipPathEl = strapClipPaths.current[i];
+    if (clipPathEl) clipPathEl.setAttribute("d", baseRibbonD);
+
     const shadowPath = strapShadows.current[i];
     if (shadowPath) {
       shadowPath.setAttribute(
@@ -627,19 +638,19 @@ export function TeamLanyardRail({
       shadowPath.setAttribute("stroke-width", (g.strapW * pinch).toFixed(2));
     }
 
-    const avgTwist = Math.abs(Math.cos(((totalY * 0.5) * Math.PI) / 180));
-    const ribbonShade = (0.7 + 0.3 * avgTwist).toFixed(2);
-    const updateLayer = (el: SVGPathElement | null | undefined, ratio: number, shade = false) => {
+    const avgTwist = Math.abs(Math.cos(((twistTotal * 0.5) * Math.PI) / 180));
+    const ribbonShade = (0.72 + 0.28 * avgTwist).toFixed(2);
+    const updateLayer = (el: SVGPathElement | null | undefined, ratio: number, shade = false, dOverride?: string) => {
       if (!el) return;
-      el.setAttribute("d", buildRibbonPath(ratio));
+      el.setAttribute("d", dOverride ?? buildRibbonPath(ratio));
       if (shade) el.style.filter = `brightness(${ribbonShade})`;
     };
 
-    updateLayer(strapBases.current[i], 1, true);
-    updateLayer(strapShoulders.current[i], 0.72, true);
-    updateLayer(strapAccentDarks.current[i], 0.46, true);
-    updateLayer(strapAccentBrights.current[i], 0.24, true);
-    updateLayer(strapSheens.current[i], 0.1);
+    updateLayer(strapBases.current[i], 1, true, baseRibbonD);
+    updateLayer(strapShoulders.current[i], 0.78, true);
+    updateLayer(strapAccentDarks.current[i], 0.36, true);
+    updateLayer(strapAccentBrights.current[i], 0.18, true);
+    updateLayer(strapSheens.current[i], 0.07);
 
     const swivel = swivels.current[i];
     if (swivel) {
@@ -1369,15 +1380,29 @@ export function TeamLanyardRail({
               />
               <span ref={(node) => { swings.current[i] = node; }} data-swing className="absolute inset-0 block">
                 <span ref={(node) => { straps.current[i] = node; }} data-strap aria-hidden="true" className="absolute inset-0 block">
-                  {/* Dynamic Bending 3D Satin Ribbon Strap (Continuous Layered Bezier) */}
+                  {/* Dynamic Bending 3D Satin Ribbon Strap (Twisted Woven Lanyard) */}
                   <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full overflow-visible">
+                    <defs>
+                      <path
+                        id={`${uid}-centerline-${i}`}
+                        ref={(node) => { strapCenterlines.current[i] = node; }}
+                        fill="none"
+                        d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      />
+                      <clipPath id={`${uid}-ribbon-clip-${i}`}>
+                        <path
+                          ref={(node) => { strapClipPaths.current[i] = node; }}
+                          d={`M ${(W / 2 - g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
+                        />
+                      </clipPath>
+                    </defs>
                     <path
                       ref={(node) => { strapShadows.current[i] = node; }}
                       fill="none"
-                      stroke="rgba(0,0,0,0.38)"
+                      stroke="rgba(0,0,0,0.42)"
                       strokeWidth={g.strapW}
                       strokeLinecap="round"
-                      style={{ filter: "blur(2.5px)" }}
+                      style={{ filter: "blur(3px)" }}
                       d={`M ${(W / 2 + 3 * g.u).toFixed(1)} ${(g.pivotY + 4).toFixed(1)} L ${(W / 2 + 3 * g.u).toFixed(1)} ${(g.pivotY + strap + 4).toFixed(1)}`}
                     />
                     <path
@@ -1387,24 +1412,39 @@ export function TeamLanyardRail({
                     />
                     <path
                       ref={(node) => { strapShoulders.current[i] = node; }}
-                      fill="#27272a"
-                      d={`M ${(W / 2 - g.strapW * 0.36).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.36).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.36).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.36).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
+                      fill="#18181b"
+                      d={`M ${(W / 2 - g.strapW * 0.39).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.39).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.39).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.39).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapAccentDarks.current[i] = node; }}
                       fill="var(--accent-dark)"
-                      d={`M ${(W / 2 - g.strapW * 0.23).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.23).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.23).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.23).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
+                      d={`M ${(W / 2 - g.strapW * 0.18).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.18).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.18).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.18).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapAccentBrights.current[i] = node; }}
                       fill="var(--accent-bright)"
-                      d={`M ${(W / 2 - g.strapW * 0.12).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.12).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.12).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.12).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
+                      d={`M ${(W / 2 - g.strapW * 0.09).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.09).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.09).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.09).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
                     <path
                       ref={(node) => { strapSheens.current[i] = node; }}
-                      fill="rgba(255,255,255,0.22)"
-                      d={`M ${(W / 2 - g.strapW * 0.05).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.05).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.05).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.05).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
+                      fill="rgba(255,255,255,0.2)"
+                      d={`M ${(W / 2 - g.strapW * 0.035).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.035).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.035).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.035).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
+                    <g clipPath={`url(#${uid}-ribbon-clip-${i})`}>
+                      <text
+                        fill="rgba(255,255,255,0.82)"
+                        fontSize={Math.max(6, g.strapW * 0.38)}
+                        fontWeight="700"
+                        fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                        letterSpacing="0.16em"
+                        dominantBaseline="central"
+                        style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}
+                      >
+                        <textPath href={`#${uid}-centerline-${i}`} startOffset="50%" textAnchor="middle">
+                          JEVALLENE
+                        </textPath>
+                      </text>
+                    </g>
                   </svg>
                   {/* HD Brushed Steel Swivel Loop */}
                   <svg
