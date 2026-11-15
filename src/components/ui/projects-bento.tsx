@@ -73,9 +73,8 @@ const PROJECTS: ProjectItem[] = [
     id: "kokop",
     category: "design",
     categoryLabel: { id: "UI/UX Design", en: "UI/UX Design" },
-    image:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Foto kopi spesialti nusantara untuk proyek KoKoP — Kopi Kopi Online Pas",
+    image: "/projects/kokop.jpg",
+    imageAlt: "Tampilan UI/UX e-commerce kopi spesialti KoKoP — Kopi Kopi Online Pas",
     gradientFallback: "from-amber-500 via-orange-500 to-rose-500",
     title: "KoKoP — Kopi Kopi Online Pas",
     description: {
