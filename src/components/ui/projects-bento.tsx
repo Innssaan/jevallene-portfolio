@@ -33,9 +33,8 @@ const PROJECTS: ProjectItem[] = [
     id: "olu-dashboard",
     category: "web",
     categoryLabel: { id: "Web App", en: "Web App" },
-    image:
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Pratinjau dashboard analitik dan manajemen tugas OLU — Our Little Universe",
+    image: "/projects/olu-dashboard.jpg",
+    imageAlt: "Tampilan aplikasi web Our Little Universe — Date Planner & Shared Space",
     gradientFallback: "from-indigo-500 via-violet-500 to-fuchsia-500",
     title: "OLU Dashboard · Our Little Universe",
     description: {
