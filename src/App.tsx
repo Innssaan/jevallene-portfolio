@@ -44,13 +44,13 @@ const PROFILE_LANYARD: LanyardMember[] = [
   {
     id: "profile-main",
     name: "Innssaan",
-    role: "Founder · Web, UI/UX & Visuals",
-    team: "JEVALLENE · Creative Studio",
+    role: "Founder Jevallene - Web",
+    team: "UI/UX & Visuals",
     tone: 1,
     drop: 4,
     image: "/avatar-innssaan.jpg?v=5",
-    bio: "Creative studio di Bandung yang merancang website modern, antarmuka intuitif, serta karya fotografi dan videografi berkarakter.",
-    tags: ["React", "UI/UX", "Photography", "Videography"],
+    bio: "Founder Jevallene di Bandung — Web, UI/UX & Visuals, Videographer, dan Photographer.",
+    tags: ["Web", "UI/UX & Visuals", "Videographer", "Photographer"],
     links: [
       { label: "WhatsApp", href: "https://wa.me/628562010605" },
       { label: "Discord", href: "https://discord.gg/yQnaVA475" },
@@ -887,9 +887,9 @@ export default function App() {
                 <p className="mt-4 min-h-[3.25rem] sm:min-h-[1.75rem] text-base sm:text-lg font-semibold text-accent">
                   <Typewriter
                     phrases={[
-                      "Web Developer & UI/UX Designer",
-                      "Founder of Jevallene Studio",
-                      "Photographer & Videographer",
+                      "Founder Jevallene - Web",
+                      "UI/UX & Visuals",
+                      "Videographer & Photographer",
                       "Interactive 3D & React Specialist",
                     ]}
                   />
@@ -1047,7 +1047,7 @@ export default function App() {
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-neutral-600 dark:text-[#9A9AA2]">
-                        Founder of Jevallene · Web Developer, UI/UX Designer &amp; Visual Creator
+                        Founder Jevallene - Web · UI/UX &amp; Visuals · Videographer · Photographer
                       </p>
                     </div>
                   </div>

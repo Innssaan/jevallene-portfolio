@@ -311,7 +311,7 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, index = 0 }: { item: L
 
         {/* Framed Editorial Portrait */}
         <span
-          className="relative mt-[0.55em] block h-[5.65em] w-full shrink-0 overflow-hidden rounded-[0.65em] border border-neutral-300 bg-neutral-100 dark:border-[#3A3A44] dark:bg-[#16161C]"
+          className="relative mt-[0.42em] block h-[4.85em] w-full shrink-0 overflow-hidden rounded-[0.65em] border border-neutral-300 bg-neutral-100 dark:border-[#3A3A44] dark:bg-[#16161C]"
           style={{
             transform: "translateZ(8px)",
             boxShadow: "0 0.35em 1em rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.06)",
@@ -341,18 +341,29 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, index = 0 }: { item: L
         </span>
 
         {/* Identity Block */}
-        <span className="mt-[0.55em] block w-full" style={{ transform: "translateZ(6px)" }}>
-          <span className="block truncate text-[1.05em] font-bold leading-tight tracking-tight">
+        <span className="mt-[0.42em] block w-full" style={{ transform: "translateZ(6px)" }}>
+          <span className="block truncate text-[1.02em] font-bold leading-tight tracking-tight">
             {item.name}
           </span>
-          <span className="mt-[0.15em] block truncate text-[0.68em] font-medium text-neutral-600 dark:text-[#C4C4CC]">
+          <span className="mt-[0.14em] block truncate text-[0.6em] font-semibold leading-snug text-neutral-700 dark:text-[#E4E4E7]">
             {item.role}
+          </span>
+          {item.team && (
+            <span className="block truncate text-[0.56em] font-medium leading-snug text-neutral-600 dark:text-[#C4C4CC]">
+              {item.team}
+            </span>
+          )}
+          <span className="mt-[0.06em] block truncate text-[0.52em] font-medium leading-snug text-neutral-500 dark:text-[#A1A1AA]">
+            Videographer
+          </span>
+          <span className="block truncate text-[0.52em] font-medium leading-snug text-neutral-500 dark:text-[#A1A1AA]">
+            Photographer
           </span>
         </span>
 
         {/* Structured Metadata Grid */}
         <span
-          className="mt-auto grid w-full grid-cols-2 border-t border-neutral-200 pt-[0.45em] dark:border-[#27272E]"
+          className="mt-auto grid w-full grid-cols-2 border-t border-neutral-200 pt-[0.38em] dark:border-[#27272E]"
           style={{ transform: "translateZ(4px)" }}
         >
           <span className="block pr-[0.35em]">
@@ -368,7 +379,7 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, index = 0 }: { item: L
               FOCUS
             </span>
             <span className="block truncate font-mono text-[0.54em] font-semibold text-accent">
-              UI · MOTION
+              WEB · VISUALS
             </span>
           </span>
         </span>
@@ -727,7 +738,7 @@ export function TeamLanyardRail({
           const idleAngle = live.current.reduced
             ? 0
             : Math.sin(tSec * 0.85 + i * 1.3) * 1.45 +
-              Math.sin(tSec * 1.37 + i * 0.7) * 0.75;
+            Math.sin(tSec * 1.37 + i * 0.7) * 0.75;
           const vsw = clamp((s.vsw[i] ?? 0) + (g.couple[i] ?? 0.09) * clamp(dv, -1100, 1100), -180, 180);
           const next = vsw + (-(g.swingK[i] ?? SWING_K) * (sw - idleAngle) - SWING_DAMP * vsw) * h;
           s.vsw[i] = next;
