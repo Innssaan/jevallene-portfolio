@@ -683,57 +683,27 @@ export function TeamLanyardRail({
         s.px[i] = s.vx[i] ?? 0;
         if (i !== s.drag && i !== s.pull) {
           const L = Math.max(20, g.straps[i] ?? 96);
-          let px = s.ox[i] ?? 0;
-          let py = L + (s.oy[i] ?? 0);
-          let vx = s.vox[i] ?? 0;
-          let vy = s.voy[i] ?? 0;
-
-          // Real 2D gravity + gentle air damping
-          vy += 2200 * h;
-          const air = Math.exp(-2.1 * h);
-          vx *= air;
-          vy *= air;
-
-          px += vx * h;
-          py += vy * h;
-
-          // Rope/strap constraint: firm when taut, allows natural pendulum arc & slack sag
-          const dist = Math.hypot(px, py);
-          if (dist > L && dist > 0.001) {
-            const ux = px / dist;
-            const uy = py / dist;
-            const stretch = dist - L;
-            const vRad = vx * ux + vy * uy;
-            const pullBack = 460 * stretch + 24 * vRad;
-            vx -= ux * pullBack * h;
-            vy -= uy * pullBack * h;
-            if (stretch > 36) {
-              const cap = L + 36;
-              px = ux * cap;
-              py = uy * cap;
-            }
+          // Bouncy elastic lanyard springs (vertical mumbul-mumbul + smooth pendulum horizontal swing)
+          spring(s.ox, s.vox, 0, i, 28, 0.24, h);
+          const slack = (s.oy[i] ?? 0) < 0;
+          spring(s.oy, s.voy, 0, i, slack ? 36 : 54, slack ? 0.24 : 0.19, h);
+          const topStop = -L - 26;
+          if ((s.oy[i] ?? 0) < topStop) {
+            s.oy[i] = topStop;
+            s.voy[i] = Math.abs(s.voy[i] ?? 0) * 0.45;
           }
-
-          s.ox[i] = px;
-          s.oy[i] = py - L;
-          s.vox[i] = vx;
-          s.voy[i] = vy;
           s.st[i] = s.oy[i] ?? 0;
 
-          // Card gravity tilt around clip: follows strap angle gently when taut, settles to 0deg
-          const taut = dist >= L * 0.96;
-          const targetSw = taut ? clamp((-Math.atan2(px, Math.max(20, py)) * 180) / Math.PI * 0.35, -24, 24) : 0;
-          const vsw = s.vsw[i] ?? 0;
-          const sw = s.sw[i] ?? 0;
-          const asw = -28 * (sw - targetSw) - 6.5 * vsw;
-          s.vsw[i] = vsw + asw * h;
-          s.sw[i] = clamp(sw + (s.vsw[i] ?? 0) * h, -32, 32);
+          const curOx = s.ox[i] ?? 0;
+          const curPy = Math.max(40, L + (s.oy[i] ?? 0));
+          const targetSw = clamp((-Math.atan2(curOx, curPy) * 180) / Math.PI * 0.26, -16, 16);
+          spring(s.sw, s.vsw, targetSw, i, 45, 0.55, h);
         } else {
-          const vsw = s.vsw[i] ?? 0;
-          const sw = s.sw[i] ?? 0;
-          const asw = -32 * sw - 7.5 * vsw;
-          s.vsw[i] = vsw + asw * h;
-          s.sw[i] = clamp(sw + (s.vsw[i] ?? 0) * h, -24, 24);
+          const L = Math.max(20, g.straps[i] ?? 96);
+          const curOx = s.ox[i] ?? 0;
+          const curPy = Math.max(40, L + (s.oy[i] ?? 0));
+          const targetSw = clamp((-Math.atan2(curOx, curPy) * 180) / Math.PI * 0.22, -14, 14);
+          spring(s.sw, s.vsw, targetSw, i, 55, 0.6, h);
         }
         s.beta[i] = s.sw[i] ?? 0;
         spring(s.ry, s.vry, s.tr[i] ?? 0, i, 170, 0.62, h);
@@ -1049,17 +1019,8 @@ export function TeamLanyardRail({
         const rawOx = p.startOx + dx;
         const rawOy = p.startOy + dy;
         const strapLen = L.geo.straps[i] ?? 96;
-        const relY = strapLen + rawOy;
-        const rawDist = Math.hypot(rawOx, relY);
-        let clampedOx = rawOx;
-        let clampedOy = rawOy;
-        if (rawDist > strapLen && rawDist > 0.001) {
-          const capped = strapLen + soft(rawDist - strapLen, 34);
-          const scale = capped / rawDist;
-          clampedOx = rawOx * scale;
-          clampedOy = relY * scale - strapLen;
-        }
-        clampedOy = Math.max(-strapLen - 16, clampedOy);
+        const clampedOx = Math.sign(rawOx) * soft(Math.abs(rawOx), 190);
+        const clampedOy = rawOy >= 0 ? soft(rawOy, L.geo.maxStretch) : clamp(rawOy, -strapLen - 26, 0);
         s.ox[i] = clampedOx;
         s.oy[i] = clampedOy;
         s.st[i] = clampedOy;
