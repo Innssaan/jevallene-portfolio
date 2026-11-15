@@ -462,8 +462,7 @@ export function TeamLanyardRail({
   const strapAccentDarks = React.useRef([] as (SVGPathElement | null)[]);
   const strapAccentBrights = React.useRef([] as (SVGPathElement | null)[]);
   const strapSheens = React.useRef([] as (SVGPathElement | null)[]);
-  const strapCenterlines = React.useRef([] as (SVGPathElement | null)[]);
-  const strapClipPaths = React.useRef([] as (SVGPathElement | null)[]);
+  const connectorFlips = React.useRef([] as (HTMLSpanElement | null)[]);
   const swivels = React.useRef([] as (SVGSVGElement | null)[]);
   const hangs = React.useRef([] as (HTMLSpanElement | null)[]);
   const buttons = React.useRef([] as (HTMLButtonElement | null)[]);
@@ -573,9 +572,9 @@ export function TeamLanyardRail({
     const pinch = st >= 0 ? 1 - clamp(st / 680, 0, 0.18) : 1 + clamp(-st / 180, 0, 0.08);
     const halfBase = (g.strapW / 2) * pinch;
 
-    // Sample 24 points along Cubic Bezier with a natural 165deg resting helical twist ("tali terlilit")
+    // Sample 24 points along Cubic Bezier: flat by default, twists helically ("terlilit") when card flips/spins
     const SAMPLES = 24;
-    const twistTotal = 165 + totalY;
+    const twistTotal = totalY;
     const ptsC: { x: number; y: number }[] = [];
     const normals: { nx: number; ny: number }[] = [];
     const hws: number[] = [];
@@ -621,13 +620,7 @@ export function TeamLanyardRail({
       return `${forward}${backward}Z`;
     };
 
-    const curveD = `M ${ax.toFixed(1)} ${ay.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`;
-    const centerlineEl = strapCenterlines.current[i];
-    if (centerlineEl) centerlineEl.setAttribute("d", curveD);
-
     const baseRibbonD = buildRibbonPath(1);
-    const clipPathEl = strapClipPaths.current[i];
-    if (clipPathEl) clipPathEl.setAttribute("d", baseRibbonD);
 
     const shadowPath = strapShadows.current[i];
     if (shadowPath) {
@@ -666,11 +659,16 @@ export function TeamLanyardRail({
     }
     const flip = flips.current[i];
     const facing = Math.abs(Math.cos((totalY * Math.PI) / 180));
+    const flipTransform = `perspective(${PERSPECTIVE}px) rotateX(${rx.toFixed(2)}deg) rotateY(${totalY.toFixed(2)}deg)`;
     if (flip) {
-      flip.style.transform = `perspective(${PERSPECTIVE}px) rotateX(${rx.toFixed(2)}deg) rotateY(${totalY.toFixed(2)}deg)`;
+      flip.style.transform = flipTransform;
       flip.style.setProperty("--shade", ((1 - facing) * 0.45 + Math.abs(rx) * 0.008).toFixed(3));
       const phi = ((((totalY + 90) % 180) + 180) % 180) - 90;
       flip.style.setProperty("--gx", `${(phi * 0.9 + rx * 0.7).toFixed(1)}%`);
+    }
+    const connectorFlip = connectorFlips.current[i];
+    if (connectorFlip) {
+      connectorFlip.style.transform = flipTransform;
     }
     const shadow = shadows.current[i];
     if (shadow) {
@@ -1382,20 +1380,6 @@ export function TeamLanyardRail({
                 <span ref={(node) => { straps.current[i] = node; }} data-strap aria-hidden="true" className="absolute inset-0 block">
                   {/* Dynamic Bending 3D Satin Ribbon Strap (Twisted Woven Lanyard) */}
                   <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full overflow-visible">
-                    <defs>
-                      <path
-                        id={`${uid}-centerline-${i}`}
-                        ref={(node) => { strapCenterlines.current[i] = node; }}
-                        fill="none"
-                        d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
-                      />
-                      <clipPath id={`${uid}-ribbon-clip-${i}`}>
-                        <path
-                          ref={(node) => { strapClipPaths.current[i] = node; }}
-                          d={`M ${(W / 2 - g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
-                        />
-                      </clipPath>
-                    </defs>
                     <path
                       ref={(node) => { strapShadows.current[i] = node; }}
                       fill="none"
@@ -1430,21 +1414,6 @@ export function TeamLanyardRail({
                       fill="rgba(255,255,255,0.2)"
                       d={`M ${(W / 2 - g.strapW * 0.035).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW * 0.035).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.035).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} L ${(W / 2 + g.strapW * 0.035).toFixed(1)} ${g.pivotY.toFixed(1)} Z`}
                     />
-                    <g clipPath={`url(#${uid}-ribbon-clip-${i})`}>
-                      <text
-                        fill="rgba(255,255,255,0.82)"
-                        fontSize={Math.max(6, g.strapW * 0.38)}
-                        fontWeight="700"
-                        fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
-                        letterSpacing="0.16em"
-                        dominantBaseline="central"
-                        style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}
-                      >
-                        <textPath href={`#${uid}-centerline-${i}`} startOffset="50%" textAnchor="middle">
-                          JEVALLENE
-                        </textPath>
-                      </text>
-                    </g>
                   </svg>
                   {/* HD Brushed Steel Swivel Loop */}
                   <svg
@@ -1491,27 +1460,89 @@ export function TeamLanyardRail({
                       <BadgeFaces item={item} tone={tone} index={i} />
                     </span>
                   </button>
-                  {/* Machined Steel Crimp Ferrule directly joining strap to card clip */}
+                  {/* 3D Synchronized Connector (Machined Steel Crimp + Plastic Clasp) */}
                   <span
+                    ref={(node) => { connectorFlips.current[i] = node; }}
                     aria-hidden="true"
-                    className="pointer-events-none absolute flex items-center justify-around rounded-[2px] px-[1.5px]"
-                    style={{
-                      left: W / 2 - g.strapW / 2 - 1.5,
-                      top: -g.crimp * 0.55,
-                      width: g.strapW + 3,
-                      height: g.crimp,
-                      background: METAL,
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65), 0 2px 4px rgba(0,0,0,0.45)",
-                    }}
+                    className="pointer-events-none absolute inset-x-0 top-0 block [transform-style:preserve-3d]"
+                    style={{ height: cardOffset + 12 * g.u, transformOrigin: "50% 0%" }}
                   >
-                    <span className="size-[2px] rounded-full bg-zinc-700/80" />
-                    <span className="size-[2px] rounded-full bg-zinc-700/80" />
-                  </span>
-                  <span aria-hidden="true" className="pointer-events-none absolute block" style={{ left: W / 2 - g.clipW / 2, top: 0, width: g.clipW, height: g.clipH + 10 * g.u }}>
-                    <span className="absolute left-1/2 block -translate-x-1/2 rounded-b-[2px]" style={{ top: g.clipH * 0.7, width: g.clipW * 0.42, height: cardOffset - g.clipH * 0.7 + 0.72 * base + 0.3 * base, background: PLASTIC }} />
-                    <span className="absolute inset-x-0 top-0 block" style={{ height: g.clipH, clipPath: "polygon(24% 0, 76% 0, 100% 72%, 94% 100%, 6% 100%, 0 72%)", background: PLASTIC }} />
-                    <span className="absolute block bg-white/50" style={{ left: "30%", right: "30%", top: 1, height: 1 }} />
-                    <span className="absolute left-1/2 block -translate-x-1/2 rounded-full bg-background" style={{ top: g.clipH * 0.14, width: g.clipH * 0.34, height: g.clipH * 0.34, boxShadow: "inset 0 1px 1px color-mix(in oklab, black 45%, transparent)" }} />
+                    {/* Crimp Ferrule Front & Back + 3D Edges */}
+                    <span
+                      className="absolute flex items-center justify-around rounded-[2px] px-[1.5px] [backface-visibility:hidden]"
+                      style={{
+                        left: W / 2 - g.strapW / 2 - 2,
+                        top: -g.crimp * 0.55,
+                        width: g.strapW + 4,
+                        height: g.crimp,
+                        background: METAL,
+                        transform: "translateZ(2.5px)",
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65), 0 2px 4px rgba(0,0,0,0.45)",
+                      }}
+                    >
+                      <span className="size-[2px] rounded-full bg-zinc-700/80" />
+                      <span className="size-[2px] rounded-full bg-zinc-700/80" />
+                    </span>
+                    <span
+                      className="absolute flex items-center justify-around rounded-[2px] px-[1.5px] [backface-visibility:hidden]"
+                      style={{
+                        left: W / 2 - g.strapW / 2 - 2,
+                        top: -g.crimp * 0.55,
+                        width: g.strapW + 4,
+                        height: g.crimp,
+                        background: METAL,
+                        transform: "rotateY(180deg) translateZ(2.5px)",
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.45), 0 2px 4px rgba(0,0,0,0.45)",
+                      }}
+                    >
+                      <span className="size-[2px] rounded-full bg-zinc-800/90" />
+                      <span className="size-[2px] rounded-full bg-zinc-800/90" />
+                    </span>
+                    {[0, 1].map((side) => (
+                      <span
+                        key={`crimp-edge-${side}`}
+                        className="absolute block w-[5px]"
+                        style={{
+                          left: side ? W / 2 + g.strapW / 2 + 2 - 2.5 : W / 2 - g.strapW / 2 - 2 - 2.5,
+                          top: -g.crimp * 0.55,
+                          height: g.crimp,
+                          background: "#52525b",
+                          transform: "rotateY(90deg)",
+                        }}
+                      />
+                    ))}
+
+                    {/* Plastic Clasp Connector Front & Back + 3D Edges */}
+                    <span className="absolute block [transform-style:preserve-3d]" style={{ left: W / 2 - g.clipW / 2, top: 0, width: g.clipW, height: g.clipH + 10 * g.u }}>
+                      {/* Front face */}
+                      <span className="absolute inset-0 block [backface-visibility:hidden]" style={{ transform: "translateZ(2.5px)" }}>
+                        <span className="absolute left-1/2 block -translate-x-1/2 rounded-b-[2px]" style={{ top: g.clipH * 0.7, width: g.clipW * 0.42, height: cardOffset - g.clipH * 0.7 + 0.72 * base + 0.3 * base, background: PLASTIC }} />
+                        <span className="absolute inset-x-0 top-0 block" style={{ height: g.clipH, clipPath: "polygon(24% 0, 76% 0, 100% 72%, 94% 100%, 6% 100%, 0 72%)", background: PLASTIC }} />
+                        <span className="absolute block bg-white/50" style={{ left: "30%", right: "30%", top: 1, height: 1 }} />
+                        <span className="absolute left-1/2 block -translate-x-1/2 rounded-full bg-background" style={{ top: g.clipH * 0.14, width: g.clipH * 0.34, height: g.clipH * 0.34, boxShadow: "inset 0 1px 1px color-mix(in oklab, black 45%, transparent)" }} />
+                      </span>
+                      {/* Back face (with clasp seam & accent rivet) */}
+                      <span className="absolute inset-0 block [backface-visibility:hidden]" style={{ transform: "rotateY(180deg) translateZ(2.5px)" }}>
+                        <span className="absolute left-1/2 block -translate-x-1/2 rounded-b-[2px]" style={{ top: g.clipH * 0.7, width: g.clipW * 0.42, height: cardOffset - g.clipH * 0.7 + 0.72 * base + 0.3 * base, background: PLASTIC }} />
+                        <span className="absolute inset-x-0 top-0 block" style={{ height: g.clipH, clipPath: "polygon(24% 0, 76% 0, 100% 72%, 94% 100%, 6% 100%, 0 72%)", background: "linear-gradient(180deg, #27272a 0%, #09090b 100%)" }} />
+                        <span className="absolute left-1/2 block -translate-x-1/2 rounded-full border border-zinc-600/60 bg-zinc-800" style={{ top: g.clipH * 0.14, width: g.clipH * 0.34, height: g.clipH * 0.34 }} />
+                        <span className="absolute inset-x-[22%] block h-[1px] bg-white/15" style={{ top: g.clipH * 0.68 }} />
+                      </span>
+                      {/* 3D Side Thickness of Clasp Tongue */}
+                      {[0, 1].map((side) => (
+                        <span
+                          key={`clip-edge-${side}`}
+                          className="absolute block w-[5px]"
+                          style={{
+                            left: side ? g.clipW * 0.71 - 2.5 : g.clipW * 0.29 - 2.5,
+                            top: g.clipH * 0.7,
+                            height: cardOffset - g.clipH * 0.7 + 0.72 * base + 0.3 * base,
+                            background: "#18181b",
+                            transform: "rotateY(90deg)",
+                          }}
+                        />
+                      ))}
+                    </span>
                   </span>
                 </span>
               </span>
