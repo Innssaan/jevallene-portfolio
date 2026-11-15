@@ -705,15 +705,15 @@ export function TeamLanyardRail({
         }
         s.beta[i] = (s.beta[i] ?? 0) + ((s.sw[i] ?? 0) - (s.beta[i] ?? 0)) * Math.min(1, h / LAG);
         spring(s.ry, s.vry, s.tr[i] ?? 0, i, 170, 0.62, h);
-        spring(s.rx, s.vrx, s.trx[i] ?? 0, i, 90, 0.42, h);
-        spring(s.tiltY, s.vtiltY, s.ttiltY[i] ?? 0, i, 18, 0.3, h);
+        spring(s.rx, s.vrx, s.trx[i] ?? 0, i, 90, 0.48, h);
+        spring(s.tiltY, s.vtiltY, s.ttiltY[i] ?? 0, i, 24, 0.46, h);
         spring(s.rz, s.vrz, s.tz[i] ?? 0, i, 120, 0.8, h);
         spring(s.lift, s.vlift, s.tl[i] ?? 0, i, 200, 0.75, h);
         spring(s.pop, s.vpop, s.tp[i] ?? 0, i, 160, 0.55, h);
         if (i !== s.drag && i !== s.pull) {
-          spring(s.ox, s.vox, 0, i, 34, 0.24, h);
+          spring(s.ox, s.vox, 0, i, 38, 0.36, h);
           const slack = (s.oy[i] ?? 0) < 0;
-          spring(s.oy, s.voy, 0, i, slack ? 24 : REEL_K, slack ? 0.25 : REEL_ZETA, h);
+          spring(s.oy, s.voy, 0, i, slack ? 26 : REEL_K, slack ? 0.34 : 0.32, h);
           const topStop = -(g.straps[i] ?? 96) - 18;
           if ((s.oy[i] ?? 0) < topStop) {
             s.oy[i] = topStop;
@@ -1058,9 +1058,7 @@ export function TeamLanyardRail({
         s.vsw[i] = 0;
         s.sw[i] = 0;
         s.trx[i] = clamp(dy * 0.12, -18, 18);
-        const pullRatio = clamp(Math.max(0, clampedOy) / Math.max(1, L.geo.maxStretch), 0, 1);
-        const twistBias = (i % 2 === 0 ? 1 : -1) * pullRatio * 28;
-        s.ttiltY[i] = clamp(-p.v * 30 + twistBias, -48, 48);
+        s.ttiltY[i] = clamp(-p.v * 18, -22, 22);
         s.free = now + 1850;
         const speed = Math.hypot(p.v, p.vy);
         if (speed > 0.35) {
@@ -1165,16 +1163,13 @@ export function TeamLanyardRail({
       if (i >= 0) {
         const pulled = Math.max(0, s.oy[i] ?? 0);
         const pullRatio = clamp(pulled / Math.max(1, L.geo.maxStretch), 0, 1);
-        const dir = Math.abs(p.v) > 0.04 ? Math.sign(p.v) : (i % 2 === 0 ? 1 : -1);
-        const twistKick = pulled > 28 ? dir * (360 + pullRatio * 960) : 0;
-        s.vox[i] = clamp(p.v * 1150, -1400, 1400);
-        s.voy[i] = clamp(p.vy * 950 - pullRatio * 140, -900, 1100);
-        s.vx[i] = seamless ? 0 : clamp(p.v * 1150, -1400, 1400);
-        s.vst[i] = clamp(p.vy * 950 - pullRatio * 140, -900, 1100);
-        const swayBoost = Math.abs(p.v) < 0.08 ? dir * pullRatio * 22 : 0;
-        s.vsw[i] = (s.vsw[i] ?? 0) + clamp(-p.v * 135, -180, 180) + swayBoost;
-        s.vtiltY[i] = (s.vtiltY[i] ?? 0) + clamp(p.v * 280, -320, 320) + twistKick;
-        s.vrx[i] = (s.vrx[i] ?? 0) + clamp(-p.vy * 180, -180, 180) + pullRatio * 85;
+        s.vox[i] = clamp(p.v * 950, -1100, 1100);
+        s.voy[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
+        s.vx[i] = seamless ? 0 : clamp(p.v * 950, -1100, 1100);
+        s.vst[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
+        s.vsw[i] = (s.vsw[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(-p.v * 70, -90, 90) : 0);
+        s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(p.v * 140, -180, 180) : 0);
+        s.vrx[i] = (s.vrx[i] ?? 0) + clamp(-p.vy * 140, -140, 140) + pullRatio * 45;
         s.trx[i] = 0;
         s.ttiltY[i] = 0;
       }
@@ -1193,12 +1188,10 @@ export function TeamLanyardRail({
         if (i >= 0) {
           const pulled = s.st[i] ?? 0;
           const pullRatio = clamp(pulled / Math.max(1, L.geo.maxStretch), 0, 1);
-          const dir = Math.abs(p.v) > 0.04 ? Math.sign(p.v) : (i % 2 === 0 ? 1 : -1);
-          const twistKick = pulled > 28 ? dir * (360 + pullRatio * 960) : 0;
-          s.vst[i] = clamp(p.vy * 950 - pullRatio * 140, -900, 1100);
-          s.vsw[i] = (s.vsw[i] ?? 0) + clamp(-p.v * 135, -180, 180) + dir * pullRatio * 22;
-          s.vtiltY[i] = (s.vtiltY[i] ?? 0) + clamp(p.v * 280, -320, 320) + twistKick;
-          s.vrx[i] = (s.vrx[i] ?? 0) + clamp(-p.vy * 180, -180, 180) + pullRatio * 85;
+          s.vst[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
+          s.vsw[i] = (s.vsw[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(-p.v * 70, -90, 90) : 0);
+          s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(p.v * 140, -180, 180) : 0);
+          s.vrx[i] = (s.vrx[i] ?? 0) + clamp(-p.vy * 140, -140, 140) + pullRatio * 45;
           s.trx[i] = 0;
           s.ttiltY[i] = 0;
         }
