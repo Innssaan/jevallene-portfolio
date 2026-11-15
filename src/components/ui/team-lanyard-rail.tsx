@@ -460,9 +460,11 @@ export function TeamLanyardRail({
   const slots = React.useRef([] as (HTMLDivElement | null)[]);
   const swings = React.useRef([] as (HTMLSpanElement | null)[]);
   const straps = React.useRef([] as (HTMLSpanElement | null)[]);
-  const twistSegs = React.useRef([] as (SVGPolygonElement | null)[]);
   const strapShadows = React.useRef([] as (SVGPathElement | null)[]);
-  const strapEdges = React.useRef([] as (SVGPathElement | null)[]);
+  const strapBases = React.useRef([] as (SVGPathElement | null)[]);
+  const strapShoulders = React.useRef([] as (SVGPathElement | null)[]);
+  const strapAccentDarks = React.useRef([] as (SVGPathElement | null)[]);
+  const strapAccentBrights = React.useRef([] as (SVGPathElement | null)[]);
   const strapSheens = React.useRef([] as (SVGPathElement | null)[]);
   const swivels = React.useRef([] as (SVGSVGElement | null)[]);
   const hangs = React.useRef([] as (HTMLSpanElement | null)[]);
@@ -573,54 +575,11 @@ export function TeamLanyardRail({
     const c2y = by + sag * 0.78 - Math.min(0, dy) * 0.12;
 
     const pinch = st >= 0 ? 1 - clamp(st / 680, 0, 0.18) : 1 + clamp(-st / 180, 0, 0.08);
-    const halfBase = (g.strapW / 2) * pinch;
-
-    const SEG_COUNT = 16;
-    const ptsL: { x: number; y: number }[] = [];
-    const ptsR: { x: number; y: number }[] = [];
-    const ptsC: { x: number; y: number }[] = [];
-    const widths: number[] = [];
-    const shades: number[] = [];
-
-    for (let k = 0; k <= SEG_COUNT; k++) {
-      const t = k / SEG_COUNT;
-      const mt = 1 - t;
-      const mt2 = mt * mt;
-      const t2 = t * t;
-      const px = mt2 * mt * ax + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t2 * t * bx;
-      const py = mt2 * mt * ay + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t2 * t * by;
-
-      const dxdt = 3 * mt2 * (c1x - ax) + 6 * mt * t * (c2x - c1x) + 3 * t2 * (bx - c2x);
-      const dydt = 3 * mt2 * (c1y - ay) + 6 * mt * t * (c2y - c1y) + 3 * t2 * (by - c2y);
-      const tLen = Math.hypot(dxdt, dydt);
-      const nx = tLen > 0.001 ? -dydt / tLen : -1;
-      const ny = tLen > 0.001 ? dxdt / tLen : 0;
-
-      const segRad = ((totalY * t) * Math.PI) / 180;
-      const cosA = Math.abs(Math.cos(segRad));
-      const wScale = Math.max(0.18, cosA);
-      const hw = halfBase * wScale;
-
-      ptsC.push({ x: px, y: py });
-      ptsL.push({ x: px - nx * hw, y: py - ny * hw });
-      ptsR.push({ x: px + nx * hw, y: py + ny * hw });
-      widths.push(hw);
-      shades.push(0.58 + 0.46 * cosA);
-    }
-
-    for (let k = 0; k < SEG_COUNT; k++) {
-      const seg = twistSegs.current[i * SEG_COUNT + k];
-      if (!seg) continue;
-      const l0 = ptsL[k]!;
-      const r0 = ptsR[k]!;
-      const r1 = ptsR[k + 1]!;
-      const l1 = ptsL[k + 1]!;
-      seg.setAttribute(
-        "points",
-        `${l0.x.toFixed(1)},${l0.y.toFixed(1)} ${r0.x.toFixed(1)},${r0.y.toFixed(1)} ${r1.x.toFixed(1)},${r1.y.toFixed(1)} ${l1.x.toFixed(1)},${l1.y.toFixed(1)}`
-      );
-      seg.style.filter = `brightness(${((shades[k]! + shades[k + 1]!) * 0.5).toFixed(2)})`;
-    }
+    const cosTwist = Math.abs(Math.cos(((totalY * 0.5) * Math.PI) / 180));
+    const twistScale = 0.34 + 0.66 * cosTwist;
+    const ribbonW = g.strapW * pinch * twistScale;
+    const ribbonShade = (0.72 + 0.28 * cosTwist).toFixed(2);
+    const curveD = `M ${ax.toFixed(1)} ${ay.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`;
 
     const shadowPath = strapShadows.current[i];
     if (shadowPath) {
@@ -628,22 +587,21 @@ export function TeamLanyardRail({
         "d",
         `M ${(ax + 3 * g.u).toFixed(1)} ${(ay + 4).toFixed(1)} C ${(c1x + 3 * g.u).toFixed(1)} ${(c1y + 4).toFixed(1)}, ${(c2x + 3 * g.u).toFixed(1)} ${(c2y + 4).toFixed(1)}, ${(bx + 3 * g.u).toFixed(1)} ${(by + 4).toFixed(1)}`
       );
+      shadowPath.setAttribute("stroke-width", ribbonW.toFixed(2));
     }
 
-    const edgePath = strapEdges.current[i];
-    if (edgePath) {
-      const leftStr = ptsL.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-      const rightStr = ptsR.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-      edgePath.setAttribute("d", `${leftStr} ${rightStr}`);
-    }
+    const updateLayer = (el: SVGPathElement | null | undefined, ratio: number, shade = false) => {
+      if (!el) return;
+      el.setAttribute("d", curveD);
+      el.setAttribute("stroke-width", Math.max(0.8, ribbonW * ratio).toFixed(2));
+      if (shade) el.style.filter = `brightness(${ribbonShade})`;
+    };
 
-    const sheenPath = strapSheens.current[i];
-    if (sheenPath) {
-      sheenPath.setAttribute(
-        "d",
-        `M ${ax.toFixed(1)} ${ay.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`
-      );
-    }
+    updateLayer(strapBases.current[i], 1, true);
+    updateLayer(strapShoulders.current[i], 0.72, true);
+    updateLayer(strapAccentDarks.current[i], 0.46, true);
+    updateLayer(strapAccentBrights.current[i], 0.24, true);
+    updateLayer(strapSheens.current[i], 0.1);
 
     const swivel = swivels.current[i];
     if (swivel) {
@@ -1397,19 +1355,8 @@ export function TeamLanyardRail({
               />
               <span ref={(node) => { swings.current[i] = node; }} data-swing className="absolute inset-0 block">
                 <span ref={(node) => { straps.current[i] = node; }} data-strap aria-hidden="true" className="absolute inset-0 block">
-                  {/* Dynamic Bending 3D Satin Ribbon Strap */}
+                  {/* Dynamic Bending 3D Satin Ribbon Strap (Continuous Layered Bezier) */}
                   <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full overflow-visible">
-                    <defs>
-                      <linearGradient id={`${uid}-ribbon-${i}`} x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#09090b" />
-                        <stop offset="18%" stopColor="#27272a" />
-                        <stop offset="38%" stopColor="var(--accent-dark)" />
-                        <stop offset="50%" stopColor="var(--accent-bright)" />
-                        <stop offset="62%" stopColor="var(--accent-mid)" />
-                        <stop offset="82%" stopColor="#27272a" />
-                        <stop offset="100%" stopColor="#09090b" />
-                      </linearGradient>
-                    </defs>
                     <path
                       ref={(node) => { strapShadows.current[i] = node; }}
                       fill="none"
@@ -1419,33 +1366,44 @@ export function TeamLanyardRail({
                       style={{ filter: "blur(2.5px)" }}
                       d={`M ${(W / 2 + 3 * g.u).toFixed(1)} ${(g.pivotY + 4).toFixed(1)} L ${(W / 2 + 3 * g.u).toFixed(1)} ${(g.pivotY + strap + 4).toFixed(1)}`}
                     />
-                    {Array.from({ length: 16 }, (_, k) => {
-                      const y0 = g.pivotY + (strap * k) / 16;
-                      const y1 = g.pivotY + (strap * (k + 1)) / 16;
-                      const hw = g.strapW / 2;
-                      return (
-                        <polygon
-                          key={k}
-                          ref={(node) => { twistSegs.current[i * 16 + k] = node; }}
-                          fill={`url(#${uid}-ribbon-${i})`}
-                          points={`${(W / 2 - hw).toFixed(1)},${y0.toFixed(1)} ${(W / 2 + hw).toFixed(1)},${y0.toFixed(1)} ${(W / 2 + hw).toFixed(1)},${y1.toFixed(1)} ${(W / 2 - hw).toFixed(1)},${y1.toFixed(1)}`}
-                        />
-                      );
-                    })}
                     <path
-                      ref={(node) => { strapEdges.current[i] = node; }}
+                      ref={(node) => { strapBases.current[i] = node; }}
                       fill="none"
-                      stroke="rgba(0,0,0,0.52)"
-                      strokeWidth="1"
-                      strokeLinejoin="round"
-                      d={`M ${(W / 2 - g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} M ${(W / 2 + g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                      stroke="#09090b"
+                      strokeWidth={g.strapW}
+                      strokeLinecap="butt"
+                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                    />
+                    <path
+                      ref={(node) => { strapShoulders.current[i] = node; }}
+                      fill="none"
+                      stroke="#27272a"
+                      strokeWidth={g.strapW * 0.72}
+                      strokeLinecap="butt"
+                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                    />
+                    <path
+                      ref={(node) => { strapAccentDarks.current[i] = node; }}
+                      fill="none"
+                      stroke="var(--accent-dark)"
+                      strokeWidth={g.strapW * 0.46}
+                      strokeLinecap="butt"
+                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                    />
+                    <path
+                      ref={(node) => { strapAccentBrights.current[i] = node; }}
+                      fill="none"
+                      stroke="var(--accent-bright)"
+                      strokeWidth={g.strapW * 0.24}
+                      strokeLinecap="butt"
+                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
                     />
                     <path
                       ref={(node) => { strapSheens.current[i] = node; }}
                       fill="none"
                       stroke="rgba(255,255,255,0.22)"
-                      strokeWidth={Math.max(1.2, g.strapW * 0.22)}
-                      strokeLinecap="round"
+                      strokeWidth={Math.max(1, g.strapW * 0.1)}
+                      strokeLinecap="butt"
                       d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
                     />
                   </svg>
