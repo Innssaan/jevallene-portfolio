@@ -1,6 +1,6 @@
 import * as React from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { ArrowDownRight, ArrowRight, CircleDot, Crosshair, FileDown, Globe, LayoutGrid, Mail, Menu, MousePointer2, Orbit, Palette, Rocket, Settings, Sparkles, SunMedium, Type, Volume2, VolumeX, Waves, X } from "lucide-react";
+import { ArrowDownRight, ArrowRight, CircleDot, Crosshair, FileDown, Globe, LayoutGrid, Mail, MousePointer2, Orbit, Palette, Rocket, Settings, Sparkles, SunMedium, Type, Volume2, VolumeX, Waves, X } from "lucide-react";
 import { isSoundMuted, playClickSound, playRocketLaunchSound, setSoundMuted } from "@/lib/sound";
 import { AnimatedNumber, Magnetic, TextShimmer } from "@/components/ui/micro-interactions";
 import {
@@ -123,7 +123,6 @@ export default function App() {
       return false;
     }
   });
-  const [menuOpen, setMenuOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const settingsRef = React.useRef<HTMLDivElement | null>(null);
   const [colorTheme, setColorTheme] = React.useState<"crimson" | "ocean" | "emerald" | "violet" | "amber">(() => {
@@ -474,151 +473,153 @@ export default function App() {
         </div>
       </div>
 
-      <header className="pointer-events-none sticky top-2.5 sm:top-3.5 z-50 px-3 sm:px-4 pt-2 sm:pt-3 pb-1" id="header">
-        <div className="pointer-events-auto relative mx-auto flex w-fit max-w-full items-center justify-center gap-2 sm:gap-3 rounded-full border border-black/10 bg-white/65 px-2.5 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-[#121218]/60 dark:shadow-[0_14px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.14)]">
-          <a href="#hero" aria-label="Jevallene Home" className="logo group flex shrink-0 items-center pl-1 pr-1">
-            <span className="relative flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105">
-              <svg
-                viewBox="0 0 28 28"
-                className="h-full w-full overflow-visible"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="14"
-                  cy="14"
-                  r="12.5"
-                  fill="none"
-                  stroke="var(--accent, var(--accent))"
-                  strokeWidth="1.5"
-                />
-                {/* Continuous smooth morph: . -> - -> I -> J -> I -> - -> . */}
-                <motion.path
-                  fill="none"
-                  stroke="var(--accent, var(--accent))"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  animate={{
-                    d: [
-                      "M 14 14 L 14 14 C 14 14 14 14 14 14",
-                      "M 9.5 14 L 14 14 C 16 14 17.5 14 18.5 14",
-                      "M 14 8.5 L 14 15.5 C 14 17.5 14 18.8 14 19.6",
-                      "M 16.5 8.5 L 16.5 15.8 C 16.5 19.5 11.2 20.5 9.6 17.2",
-                      "M 16.5 8.5 L 16.5 15.8 C 16.5 19.5 11.2 20.5 9.6 17.2",
-                      "M 14 8.5 L 14 15.5 C 14 17.5 14 18.8 14 19.6",
-                      "M 9.5 14 L 14 14 C 16 14 17.5 14 18.5 14",
-                      "M 14 14 L 14 14 C 14 14 14 14 14 14",
-                    ],
-                  }}
-                  transition={{
-                    duration: 4.8,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    times: [0, 0.14, 0.28, 0.44, 0.62, 0.76, 0.88, 1],
-                  }}
-                />
-              </svg>
-            </span>
-          </a>
-
-          <LayoutGroup id="navbar-tabs">
-            <nav
-              className="hidden md:flex items-center"
-              id="nav"
-              aria-label="Navigasi utama"
-            >
-              <ul className="flex items-center gap-0.5 lg:gap-1">
-                {[
-                  { id: "tentang", label: lang === "en" ? "About" : "Tentang" },
-                  { id: "proyek", label: lang === "en" ? "Projects" : "Proyek" },
-                  { id: "pengalaman", label: lang === "en" ? "Experience" : "Pengalaman" },
-                  { id: "kontak", label: lang === "en" ? "Contact" : "Kontak" },
-                ].map((item) => {
-                  const isActive = activeSection === item.id;
-                  return (
-                    <li key={item.id}>
-                      <a
-                        href={`#${item.id}`}
-                        aria-current={isActive ? "page" : undefined}
-                        className={`relative inline-flex items-center rounded-full px-3 lg:px-3.5 py-1.5 text-xs lg:text-[13px] font-medium transition-colors duration-200 ${
-                          isActive
-                            ? "text-neutral-950 dark:text-[#FAFAFA]"
-                            : "text-neutral-600 hover:text-neutral-950 dark:text-[#9A9AA2] dark:hover:text-[#FAFAFA]"
-                        }`}
-                        onClick={() => {
-                          navClickLockUntil.current = Date.now() + 850;
-                          setActiveSection(item.id);
-                          setMenuOpen(false);
-                        }}
-                      >
-                        {isActive && (
-                          <motion.span
-                            layout
-                            layoutId="nav-active-pill"
-                            transition={{
-                              type: "spring",
-                              stiffness: 420,
-                              damping: 34,
-                              mass: 0.75,
-                            }}
-                            className="absolute inset-0 rounded-full border border-accent/25 bg-accent/10 dark:border-accent/30 dark:bg-accent/15"
-                          />
-                        )}
-                        <span className="relative z-10 flex items-center gap-1.5">
-                          <span>{item.label}</span>
-                          <span
-                            aria-hidden="true"
-                            className={`h-1.5 w-1.5 rounded-full bg-accent transition-all duration-200 ${
-                              isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                            }`}
-                          />
-                        </span>
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
-          </LayoutGroup>
-
-          <div ref={settingsRef} className="relative flex shrink-0 items-center gap-1 sm:gap-1.5">
-            <motion.button
-              type="button"
-              id="settingsToggle"
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.93 }}
-              transition={{ type: "spring", stiffness: 420, damping: 22 }}
-              aria-label={lang === "en" ? "Website settings" : "Pengaturan web"}
-              aria-expanded={settingsOpen}
-              aria-haspopup="menu"
-              title={lang === "en" ? "Settings" : "Pengaturan"}
-              onClick={() => {
-                playClickSound();
-                setSettingsOpen((prev) => !prev);
-              }}
-              className={`flex h-7 w-7 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
-                settingsOpen
-                  ? "border-white/35 bg-white/[0.12] text-[#FAFAFA]"
-                  : "border-white/15 bg-white/[0.04] text-[#9A9AA2] hover:border-white/30 hover:bg-white/[0.09] hover:text-[#FAFAFA]"
-              }`}
-            >
-              <Settings
-                size={14}
-                className={`transition-transform duration-300 ${settingsOpen ? "rotate-90" : ""}`}
-              />
-            </motion.button>
-
-            <AnimatePresence>
-              {settingsOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                  transition={{ duration: 0.16, ease: "easeOut" }}
-                  role="menu"
-                  aria-label={lang === "en" ? "Preferences" : "Preferensi"}
-                  className="fixed inset-x-4 top-[68px] z-50 mx-auto max-h-[calc(100vh-5.5rem)] w-auto max-w-[272px] overflow-y-auto rounded-2xl border border-white/[0.12] bg-[#111116]/95 p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.75)] backdrop-blur-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+10px)] sm:mx-0 sm:w-64 sm:max-w-none"
+      <header className="pointer-events-none sticky top-2.5 sm:top-3.5 z-50 px-2 sm:px-4 pt-2 sm:pt-3 pb-1" id="header">
+        <div ref={settingsRef} className="pointer-events-auto relative mx-auto w-fit max-w-full">
+          <div className="relative flex w-fit max-w-full items-center justify-center gap-1 sm:gap-2.5 md:gap-3 rounded-full border border-black/10 bg-white/65 px-2 sm:px-2.5 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-[#121218]/60 dark:shadow-[0_14px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.14)]">
+            <a href="#hero" aria-label="Jevallene Home" className="logo group flex shrink-0 items-center pl-0.5 sm:pl-1 pr-0.5 sm:pr-1">
+              <span className="relative flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105">
+                <svg
+                  viewBox="0 0 28 28"
+                  className="h-full w-full overflow-visible"
+                  aria-hidden="true"
                 >
+                  <circle
+                    cx="14"
+                    cy="14"
+                    r="12.5"
+                    fill="none"
+                    stroke="var(--accent, var(--accent))"
+                    strokeWidth="1.5"
+                  />
+                  {/* Continuous smooth morph: . -> - -> I -> J -> I -> - -> . */}
+                  <motion.path
+                    fill="none"
+                    stroke="var(--accent, var(--accent))"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    animate={{
+                      d: [
+                        "M 14 14 L 14 14 C 14 14 14 14 14 14",
+                        "M 9.5 14 L 14 14 C 16 14 17.5 14 18.5 14",
+                        "M 14 8.5 L 14 15.5 C 14 17.5 14 18.8 14 19.6",
+                        "M 16.5 8.5 L 16.5 15.8 C 16.5 19.5 11.2 20.5 9.6 17.2",
+                        "M 16.5 8.5 L 16.5 15.8 C 16.5 19.5 11.2 20.5 9.6 17.2",
+                        "M 14 8.5 L 14 15.5 C 14 17.5 14 18.8 14 19.6",
+                        "M 9.5 14 L 14 14 C 16 14 17.5 14 18.5 14",
+                        "M 14 14 L 14 14 C 14 14 14 14 14 14",
+                      ],
+                    }}
+                    transition={{
+                      duration: 4.8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      times: [0, 0.14, 0.28, 0.44, 0.62, 0.76, 0.88, 1],
+                    }}
+                  />
+                </svg>
+              </span>
+            </a>
+
+            <LayoutGroup id="navbar-tabs">
+              <nav
+                className="flex min-w-0 items-center"
+                id="nav"
+                aria-label="Navigasi utama"
+              >
+                <ul className="flex items-center gap-0.5 sm:gap-1">
+                  {[
+                    { id: "tentang", label: lang === "en" ? "About" : "Tentang" },
+                    { id: "proyek", label: lang === "en" ? "Projects" : "Proyek" },
+                    { id: "pengalaman", label: lang === "en" ? "Experience" : "Pengalaman" },
+                    { id: "kontak", label: lang === "en" ? "Contact" : "Kontak" },
+                  ].map((item) => {
+                    const isActive = activeSection === item.id;
+                    return (
+                      <li key={item.id}>
+                        <a
+                          href={`#${item.id}`}
+                          aria-current={isActive ? "page" : undefined}
+                          className={`relative inline-flex items-center whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-medium transition-colors duration-200 sm:px-3 sm:py-1.5 sm:text-xs lg:px-3.5 lg:text-[13px] ${
+                            isActive
+                              ? "text-neutral-950 dark:text-[#FAFAFA]"
+                              : "text-neutral-600 hover:text-neutral-950 dark:text-[#9A9AA2] dark:hover:text-[#FAFAFA]"
+                          }`}
+                          onClick={() => {
+                            navClickLockUntil.current = Date.now() + 850;
+                            setActiveSection(item.id);
+                          }}
+                        >
+                          {isActive && (
+                            <motion.span
+                              layout
+                              layoutId="nav-active-pill"
+                              transition={{
+                                type: "spring",
+                                stiffness: 420,
+                                damping: 34,
+                                mass: 0.75,
+                              }}
+                              className="absolute inset-0 rounded-full border border-accent/25 bg-accent/10 dark:border-accent/30 dark:bg-accent/15"
+                            />
+                          )}
+                          <span className="relative z-10 flex items-center gap-1.5">
+                            <span>{item.label}</span>
+                            <span
+                              aria-hidden="true"
+                              className={`hidden h-1.5 w-1.5 rounded-full bg-accent transition-all duration-200 sm:inline-block ${
+                                isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                              }`}
+                            />
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
+            </LayoutGroup>
+
+            <div className="flex shrink-0 items-center">
+              <motion.button
+                type="button"
+                id="settingsToggle"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.93 }}
+                transition={{ type: "spring", stiffness: 420, damping: 22 }}
+                aria-label={lang === "en" ? "Website settings" : "Pengaturan web"}
+                aria-expanded={settingsOpen}
+                aria-haspopup="menu"
+                title={lang === "en" ? "Settings" : "Pengaturan"}
+                onClick={() => {
+                  playClickSound();
+                  setSettingsOpen((prev) => !prev);
+                }}
+                className={`flex h-7 w-7 items-center justify-center rounded-full border backdrop-blur-md transition-colors ${
+                  settingsOpen
+                    ? "border-white/35 bg-white/[0.12] text-[#FAFAFA]"
+                    : "border-white/15 bg-white/[0.04] text-[#9A9AA2] hover:border-white/30 hover:bg-white/[0.09] hover:text-[#FAFAFA]"
+                }`}
+              >
+                <Settings
+                  size={14}
+                  className={`transition-transform duration-300 ${settingsOpen ? "rotate-90" : ""}`}
+                />
+              </motion.button>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {settingsOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+                role="menu"
+                aria-label={lang === "en" ? "Preferences" : "Preferensi"}
+                className="absolute left-1/2 top-[calc(100%+10px)] z-50 w-[min(304px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-2xl border border-white/[0.12] bg-[#111116]/95 p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.75)] backdrop-blur-xl sm:left-auto sm:right-0 sm:w-64 sm:translate-x-0"
+              >
                   <div className="mb-2.5 flex items-center justify-between border-b border-white/[0.07] pb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9A9AA2]">
                       {lang === "en" ? "Settings" : "Pengaturan"}
@@ -832,59 +833,6 @@ export default function App() {
                 </motion.div>
               )}
             </AnimatePresence>
-
-            <button
-              type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-neutral-200/70 hover:text-neutral-950 dark:text-[#9A9AA2] dark:hover:bg-white/10 dark:hover:text-[#FAFAFA] md:hidden"
-              id="menuToggle"
-              aria-label="Buka menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((prev) => !prev)}
-            >
-              {menuOpen ? <X size={16} /> : <Menu size={16} />}
-            </button>
-          </div>
-
-          {menuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="absolute left-1/2 top-[calc(100%+10px)] w-[min(17rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-[#D4D4D8] bg-white/95 p-2 shadow-[0_12px_36px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-[#3A3A44] dark:bg-[#111114]/95 dark:shadow-[0_16px_44px_rgba(0,0,0,0.7)] md:hidden"
-            >
-              <ul className="flex flex-col gap-1">
-                {[
-                  { id: "tentang", label: "Tentang" },
-                  { id: "proyek", label: "Proyek" },
-                  { id: "pengalaman", label: "Pengalaman" },
-                  { id: "kontak", label: "Kontak" },
-                ].map((item) => {
-                  const isActive = activeSection === item.id;
-                  return (
-                    <li key={item.id}>
-                      <a
-                        href={`#${item.id}`}
-                        className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                          isActive
-                            ? "border border-accent/25 bg-accent/10 text-neutral-950 dark:border-accent/30 dark:bg-accent/15 dark:text-[#FAFAFA]"
-                            : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-[#9A9AA2] dark:hover:bg-white/5 dark:hover:text-[#FAFAFA]"
-                        }`}
-                        onClick={() => {
-                          setActiveSection(item.id);
-                          setMenuOpen(false);
-                        }}
-                      >
-                        <span>{item.label}</span>
-                        {isActive && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                        )}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </motion.div>
-          )}
         </div>
       </header>
 
