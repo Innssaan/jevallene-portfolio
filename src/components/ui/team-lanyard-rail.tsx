@@ -71,8 +71,6 @@ const CAROUSEL_PITCH = 1.2;
 const GAP = 0.07;
 const PERSPECTIVE = 900;
 const MAX_STRETCH = 210;
-const FIRST_DELAY = 1100;
-const FLIP_DELAY = 700;
 const SWING_K = 18;
 const REST_Y = [9, -10, 7, -8, 10, -7, 8, -9];
 const REST_Z = [-1.6, 1.2, -2, 1.5, -1, 1.8, -1.3, 2];
@@ -948,23 +946,66 @@ export function TeamLanyardRail({
     previous.current = { active, flipped };
   }, [active, flipped, count, impulse, tug]);
 
-  const stop = React.useCallback(() => setPlaying(false), []);
+  const idleAutoFlip = React.useRef(false);
+  const idleTimer = React.useRef(0);
+  const idleReturnTimer = React.useRef(0);
+
+  const stop = React.useCallback(() => {
+    window.clearTimeout(idleTimer.current);
+    window.clearTimeout(idleReturnTimer.current);
+    if (idleAutoFlip.current) {
+      idleAutoFlip.current = false;
+    }
+    setPlaying(false);
+  }, []);
 
   React.useEffect(() => {
-    if (!playing || reduced || count === 0 || !ready) return;
-    let timer = 0;
-    function front(index: number) {
-      setActive(index);
-      timer = window.setTimeout(() => flip(index), FLIP_DELAY);
+    if (!autoplay || reduced || count === 0 || !ready) return;
+    let cancelled = false;
+
+    const scheduleIdle = (delayMs: number) => {
+      window.clearTimeout(idleTimer.current);
+      window.clearTimeout(idleReturnTimer.current);
+      idleTimer.current = window.setTimeout(() => {
+        if (cancelled) return;
+        const s = sim.current;
+        const L = live.current;
+        if (s.drag >= 0 || s.pull >= 0 || pointer.current.id >= 0 || L.flipped !== null) {
+          scheduleIdle(4000);
+          return;
+        }
+        // Subtle idle movement + flip to back so visitor sees the card is interactive & flippable
+        idleAutoFlip.current = true;
+        s.vox[0] = (s.vox[0] ?? 0) + 42;
+        s.voy[0] = (s.voy[0] ?? 0) + 28;
+        setFlipped(0);
+        kick();
+        idleReturnTimer.current = window.setTimeout(() => {
+          if (cancelled) return;
+          if (idleAutoFlip.current) {
+            idleAutoFlip.current = false;
+            setFlipped(null);
+            s.vox[0] = (s.vox[0] ?? 0) - 36;
+            kick();
+          }
+          scheduleIdle(7000);
+        }, 2500);
+      }, delayMs);
+    };
+
+    if (!playing) {
+      // Resume gentle idle preview after user stops interacting
+      scheduleIdle(6500);
+    } else {
+      scheduleIdle(2400);
     }
-    function flip(index: number) {
-      setFlipped(index);
-      timer = window.setTimeout(() => { setFlipped(null); front((index + 1) % Math.max(1, live.current.count)); }, interval);
-    }
-    const current = live.current.active;
-    timer = current === null ? window.setTimeout(() => front(0), FIRST_DELAY) : window.setTimeout(() => flip(current), FLIP_DELAY);
-    return () => window.clearTimeout(timer);
-  }, [playing, reduced, count, ready, interval, setActive, setFlipped]);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(idleTimer.current);
+      window.clearTimeout(idleReturnTimer.current);
+    };
+  }, [autoplay, playing, reduced, count, ready, setFlipped, kick]);
 
   React.useEffect(() => {
     if (flipped === null) return;

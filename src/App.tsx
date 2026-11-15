@@ -999,6 +999,7 @@ export default function App() {
               <div className="hero-visual reveal self-start relative z-30 mx-auto w-full max-w-[380px] mt-0 pt-0 lg:-mt-[62px]">
                 <TeamLanyardRail
                   seamless
+                  autoplay
                   items={PROFILE_LANYARD}
                   caption={
                     lang === "en"
