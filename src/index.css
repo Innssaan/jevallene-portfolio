@@ -482,7 +482,7 @@
 
 .meteor-streak {
   position: absolute;
-  width: 110px;
+  width: clamp(68px, 14vw, 115px);
   height: 1.5px;
   border-radius: 9999px;
   background: linear-gradient(90deg, rgba(var(--accent-rgb),  0.9), rgba(255, 255, 255, 0.45), transparent);

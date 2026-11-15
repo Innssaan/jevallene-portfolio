@@ -110,7 +110,7 @@ export function AmbientBackground({ variant = "meteors" }: { variant?: Backgroun
 
       {/* Diagonal shooting stars */}
       {variant === "meteors" && !prefersReducedMotion && (
-        <div className="hidden md:block">
+        <div>
           {METEORS.map((m, idx) => (
             <span
               key={idx}

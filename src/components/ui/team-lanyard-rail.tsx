@@ -191,6 +191,7 @@ function layoutTargets(width: number, W: number, carousel: boolean, center: numb
 
 type Sim = {
   x: number[]; vx: number[]; px: number[]; tx: number[];
+  ox: number[]; vox: number[]; oy: number[]; voy: number[];
   sw: number[]; vsw: number[]; beta: number[];
   ry: number[]; vry: number[]; tr: number[];
   rx: number[]; vrx: number[]; trx: number[];
@@ -204,7 +205,7 @@ type Sim = {
 
 function emptySim(): Sim {
   return {
-    x: [], vx: [], px: [], tx: [], sw: [], vsw: [], beta: [],
+    x: [], vx: [], px: [], tx: [], ox: [], vox: [], oy: [], voy: [], sw: [], vsw: [], beta: [],
     ry: [], vry: [], tr: [], rx: [], vrx: [], trx: [], tiltY: [], vtiltY: [], ttiltY: [],
     rz: [], vrz: [], tz: [],
     lift: [], vlift: [], tl: [], pop: [], vpop: [], tp: [], st: [], vst: [],
@@ -448,7 +449,11 @@ export function TeamLanyardRail({
   const slots = React.useRef([] as (HTMLDivElement | null)[]);
   const swings = React.useRef([] as (HTMLSpanElement | null)[]);
   const straps = React.useRef([] as (HTMLSpanElement | null)[]);
-  const twistSegs = React.useRef([] as (HTMLSpanElement | null)[]);
+  const twistSegs = React.useRef([] as (SVGPolygonElement | null)[]);
+  const strapShadows = React.useRef([] as (SVGPathElement | null)[]);
+  const strapEdges = React.useRef([] as (SVGPathElement | null)[]);
+  const strapSheens = React.useRef([] as (SVGPathElement | null)[]);
+  const swivels = React.useRef([] as (SVGSVGElement | null)[]);
   const hangs = React.useRef([] as (HTMLSpanElement | null)[]);
   const buttons = React.useRef([] as (HTMLButtonElement | null)[]);
   const flips = React.useRef([] as (HTMLSpanElement | null)[]);
@@ -462,7 +467,7 @@ export function TeamLanyardRail({
   const [reduced, setReduced] = React.useState(false);
   const [playing, setPlaying] = React.useState(autoplay);
   const pendingOpen = React.useRef(-1);
-  const pointer = React.useRef({ id: -1, index: -1, x: 0, y: 0, mode: "", kind: "", lastX: 0, lastY: 0, lastT: 0, v: 0, vy: 0, swipe: 0, angle: 0, hoverX: 0, hoverT: 0, hoverHit: -1 });
+  const pointer = React.useRef({ id: -1, index: -1, x: 0, y: 0, startOx: 0, startOy: 0, mode: "", kind: "", lastX: 0, lastY: 0, lastT: 0, v: 0, vy: 0, swipe: 0, angle: 0, hoverX: 0, hoverT: 0, hoverHit: -1 });
   const valid = (value: number | null | undefined) => (value === null || value === undefined || value < 0 || value >= count ? null : value);
   const active = valid(activeProp !== undefined ? activeProp : innerActive);
   const flipped = valid(flippedProp !== undefined ? flippedProp : innerFlipped);
@@ -525,42 +530,124 @@ export function TeamLanyardRail({
     if (!slot) return;
     slot.style.transform = `translate3d(${((s.x[i] ?? 0) - g.W / 2).toFixed(2)}px,0,0)`;
     const sw = s.sw[i] ?? 0;
-    const swing = swings.current[i];
-    if (swing) swing.style.transform = `rotate(${sw.toFixed(3)}deg)`;
-    const st = s.st[i] ?? 0;
     const lift = s.lift[i] ?? 0;
     const pop = s.pop[i] ?? 0;
-    const dy = st - 4 * lift;
-    const strapBase = Math.max(1, g.straps[i] ?? 1);
-    const strapEl = straps.current[i];
-    if (strapEl) {
-      const pinch = st >= 0 ? 1 - clamp(st / 680, 0, 0.18) : 1 + clamp(-st / 180, 0, 0.14);
-      strapEl.style.setProperty("--stretch", `${st.toFixed(2)}px`);
-      strapEl.style.setProperty("--stretch-ratio", Math.max(0.55, (strapBase + dy) / strapBase).toFixed(4));
-      strapEl.style.setProperty("--pinch-ratio", pinch.toFixed(4));
-    }
+    const strapBase = Math.max(1, g.straps[i] ?? 96);
+    const swayX = s.drag === i ? 0 : -Math.sin((sw * Math.PI) / 180) * strapBase * 0.35;
+    const clipX = (s.ox[i] ?? 0) + swayX;
+    const clipY = (s.oy[i] ?? 0) - 4 * lift;
+    const st = clipY;
+
     const ry = s.ry[i] ?? 0;
     const rx = s.rx[i] ?? 0;
     const tiltY = s.tiltY[i] ?? 0;
     const totalY = ry + tiltY;
+
+    // Cubic Bezier control points for realistic gravity sag & fold when card moves up-left/up-right
+    const ax = g.W / 2;
+    const ay = g.pivotY;
+    const bx = ax + clipX;
+    const by = ay + strapBase + clipY;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const dist = Math.hypot(dx, dy);
+    const slack = Math.max(0, strapBase - dist);
+    const sag = slack > 0.5 ? Math.sqrt(Math.max(0, strapBase * strapBase - dist * dist)) * 0.58 : 0;
+    const sideSign = Math.abs(dx) > 2 ? Math.sign(dx) : (i % 2 === 0 ? 1 : -1);
+    const inertiaBow = clamp(-(s.vox[i] ?? 0) * 0.014, -22, 22);
+
+    const c1x = ax + dx * 0.14 + inertiaBow * 0.45;
+    const c1y = ay + Math.max(strapBase * 0.28, dy * 0.34 + sag * 0.9);
+    const c2x = bx - dx * 0.16 + sideSign * sag * 0.32 + inertiaBow;
+    const c2y = by + sag * 0.78 - Math.min(0, dy) * 0.12;
+
+    const pinch = st >= 0 ? 1 - clamp(st / 680, 0, 0.18) : 1 + clamp(-st / 180, 0, 0.08);
+    const halfBase = (g.strapW / 2) * pinch;
+
     const SEG_COUNT = 16;
+    const ptsL: { x: number; y: number }[] = [];
+    const ptsR: { x: number; y: number }[] = [];
+    const ptsC: { x: number; y: number }[] = [];
+    const widths: number[] = [];
+    const shades: number[] = [];
+
+    for (let k = 0; k <= SEG_COUNT; k++) {
+      const t = k / SEG_COUNT;
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const t2 = t * t;
+      const px = mt2 * mt * ax + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t2 * t * bx;
+      const py = mt2 * mt * ay + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t2 * t * by;
+
+      const dxdt = 3 * mt2 * (c1x - ax) + 6 * mt * t * (c2x - c1x) + 3 * t2 * (bx - c2x);
+      const dydt = 3 * mt2 * (c1y - ay) + 6 * mt * t * (c2y - c1y) + 3 * t2 * (by - c2y);
+      const tLen = Math.hypot(dxdt, dydt);
+      const nx = tLen > 0.001 ? -dydt / tLen : -1;
+      const ny = tLen > 0.001 ? dxdt / tLen : 0;
+
+      const segRad = ((totalY * t) * Math.PI) / 180;
+      const cosA = Math.abs(Math.cos(segRad));
+      const wScale = Math.max(0.18, cosA);
+      const hw = halfBase * wScale;
+
+      ptsC.push({ x: px, y: py });
+      ptsL.push({ x: px - nx * hw, y: py - ny * hw });
+      ptsR.push({ x: px + nx * hw, y: py + ny * hw });
+      widths.push(hw);
+      shades.push(0.58 + 0.46 * cosA);
+    }
+
     for (let k = 0; k < SEG_COUNT; k++) {
       const seg = twistSegs.current[i * SEG_COUNT + k];
       if (!seg) continue;
-      // Smooth 16-segment helical ribbon twist with hourglass pinch at 90deg crossings
-      const t = (k + 0.5) / SEG_COUNT;
-      const segAngle = totalY * t;
-      const segRad = (segAngle * Math.PI) / 180;
-      const cosRaw = Math.cos(segRad);
-      const cosA = Math.abs(cosRaw);
-      const sinA = Math.sin(segRad);
-      const widthScale = Math.max(0.14, cosA);
-      const shade = 0.58 + 0.46 * cosA;
-      seg.style.transform = `skewX(${(sinA * 13).toFixed(2)}deg) scaleX(${widthScale.toFixed(3)})`;
-      seg.style.filter = `brightness(${shade.toFixed(2)})`;
+      const l0 = ptsL[k]!;
+      const r0 = ptsR[k]!;
+      const r1 = ptsR[k + 1]!;
+      const l1 = ptsL[k + 1]!;
+      seg.setAttribute(
+        "points",
+        `${l0.x.toFixed(1)},${l0.y.toFixed(1)} ${r0.x.toFixed(1)},${r0.y.toFixed(1)} ${r1.x.toFixed(1)},${r1.y.toFixed(1)} ${l1.x.toFixed(1)},${l1.y.toFixed(1)}`
+      );
+      seg.style.filter = `brightness(${((shades[k]! + shades[k + 1]!) * 0.5).toFixed(2)})`;
     }
+
+    const shadowPath = strapShadows.current[i];
+    if (shadowPath) {
+      shadowPath.setAttribute(
+        "d",
+        `M ${(ax + 3 * g.u).toFixed(1)} ${(ay + 4).toFixed(1)} C ${(c1x + 3 * g.u).toFixed(1)} ${(c1y + 4).toFixed(1)}, ${(c2x + 3 * g.u).toFixed(1)} ${(c2y + 4).toFixed(1)}, ${(bx + 3 * g.u).toFixed(1)} ${(by + 4).toFixed(1)}`
+      );
+    }
+
+    const edgePath = strapEdges.current[i];
+    if (edgePath) {
+      const leftStr = ptsL.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+      const rightStr = ptsR.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+      edgePath.setAttribute("d", `${leftStr} ${rightStr}`);
+    }
+
+    const sheenPath = strapSheens.current[i];
+    if (sheenPath) {
+      sheenPath.setAttribute(
+        "d",
+        `M ${ax.toFixed(1)} ${ay.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`
+      );
+    }
+
+    const swivel = swivels.current[i];
+    if (swivel) {
+      const startAngle = (Math.atan2(c1x - ax, Math.max(8, c1y - ay)) * -180) / Math.PI;
+      swivel.style.transform = `rotate(${clamp(startAngle * 0.55, -28, 28).toFixed(2)}deg)`;
+    }
+
+    const endTangentAngle = (Math.atan2(bx - c2x, Math.max(8, by - c2y)) * -180) / Math.PI;
+    const tautBlend = clamp(1 - slack / 24, 0, 1);
+    const cardAngle = endTangentAngle * 0.35 * tautBlend + ((s.beta[i] ?? 0) - sw) * 0.6 + (s.rz[i] ?? 0);
+
     const hang = hangs.current[i];
-    if (hang) hang.style.transform = `translate3d(0,${dy.toFixed(2)}px,0) rotate(${((s.beta[i] ?? 0) - sw + (s.rz[i] ?? 0)).toFixed(3)}deg) scale(${(1 + 0.08 * pop).toFixed(4)})`;
+    if (hang) {
+      hang.style.transform = `translate3d(${clipX.toFixed(2)}px,${clipY.toFixed(2)}px,0) rotate(${cardAngle.toFixed(3)}deg) scale(${(1 + 0.08 * pop).toFixed(4)})`;
+    }
     const flip = flips.current[i];
     const facing = Math.abs(Math.cos((totalY * Math.PI) / 180));
     if (flip) {
@@ -653,6 +740,17 @@ export function TeamLanyardRail({
         spring(s.rz, s.vrz, s.tz[i] ?? 0, i, 120, 0.8, h);
         spring(s.lift, s.vlift, s.tl[i] ?? 0, i, 200, 0.75, h);
         spring(s.pop, s.vpop, s.tp[i] ?? 0, i, 160, 0.55, h);
+        if (i !== s.drag && i !== s.pull) {
+          spring(s.ox, s.vox, 0, i, 34, 0.24, h);
+          const slack = (s.oy[i] ?? 0) < 0;
+          spring(s.oy, s.voy, 0, i, slack ? 24 : REEL_K, slack ? 0.25 : REEL_ZETA, h);
+          const topStop = -(g.straps[i] ?? 96) - 18;
+          if ((s.oy[i] ?? 0) < topStop) {
+            s.oy[i] = topStop;
+            s.voy[i] = Math.abs(s.voy[i] ?? 0) * 0.45;
+          }
+          s.st[i] = s.oy[i] ?? 0;
+        }
         if (i !== s.pull) {
           const slack = (s.st[i] ?? 0) < 0;
           spring(s.st, s.vst, 0, i, slack ? 20 : REEL_K, slack ? 0.25 : REEL_ZETA, h);
@@ -703,6 +801,8 @@ export function TeamLanyardRail({
         Math.abs((s.lift[i] ?? 0) - (s.tl[i] ?? 0)) > 0.002 || Math.abs(s.vlift[i] ?? 0) > 0.01 ||
         Math.abs((s.pop[i] ?? 0) - (s.tp[i] ?? 0)) > 0.002 || Math.abs(s.vpop[i] ?? 0) > 0.01 ||
         Math.abs(s.sw[i] ?? 0) > 0.02 || Math.abs(s.vsw[i] ?? 0) > 0.05 || Math.abs((s.beta[i] ?? 0) - (s.sw[i] ?? 0)) > 0.01 ||
+        Math.abs(s.ox[i] ?? 0) > 0.1 || Math.abs(s.vox[i] ?? 0) > 0.2 ||
+        Math.abs(s.oy[i] ?? 0) > 0.1 || Math.abs(s.voy[i] ?? 0) > 0.2 ||
         Math.abs(s.st[i] ?? 0) > 0.05 || Math.abs(s.vst[i] ?? 0) > 0.1
       ) busy = true;
     }
@@ -713,6 +813,7 @@ export function TeamLanyardRail({
       s.last = 0;
       for (let i = 0; i < n; i++) {
         if (now > s.free) { s.x[i] = s.tx[i] ?? 0; s.vx[i] = 0; s.px[i] = 0; }
+        s.ox[i] = 0; s.vox[i] = 0; s.oy[i] = 0; s.voy[i] = 0;
         s.sw[i] = 0; s.vsw[i] = 0; s.beta[i] = 0; s.st[i] = 0; s.vst[i] = 0;
         s.ry[i] = s.tr[i] ?? 0; s.vry[i] = 0;
         s.rx[i] = s.trx[i] ?? 0; s.vrx[i] = 0;
@@ -778,7 +879,7 @@ export function TeamLanyardRail({
       s.tl[i] = front ? 1 : 0;
       s.tp[i] = flipped === i ? 1 : 0;
       if (fresh) {
-        s.x[i] = tx; s.vx[i] = 0; s.px[i] = 0; s.sw[i] = 0; s.vsw[i] = 0; s.beta[i] = 0; s.st[i] = 0; s.vst[i] = 0;
+        s.x[i] = tx; s.vx[i] = 0; s.px[i] = 0; s.ox[i] = 0; s.vox[i] = 0; s.oy[i] = 0; s.voy[i] = 0; s.sw[i] = 0; s.vsw[i] = 0; s.beta[i] = 0; s.st[i] = 0; s.vst[i] = 0;
         s.ry[i] = s.tr[i] ?? 0; s.vry[i] = 0;
         s.rx[i] = s.trx[i] ?? 0; s.vrx[i] = 0;
         s.tiltY[i] = s.ttiltY[i] ?? 0; s.vtiltY[i] = 0;
@@ -786,7 +887,7 @@ export function TeamLanyardRail({
         s.lift[i] = s.tl[i] ?? 0; s.vlift[i] = 0; s.pop[i] = s.tp[i] ?? 0; s.vpop[i] = 0;
       }
     }
-    for (const key of ["x", "vx", "px", "tx", "sw", "vsw", "beta", "ry", "vry", "tr", "rz", "vrz", "tz", "lift", "vlift", "tl", "pop", "vpop", "tp", "st", "vst"] as const) s[key].length = count;
+    for (const key of ["x", "vx", "px", "tx", "ox", "vox", "oy", "voy", "sw", "vsw", "beta", "ry", "vry", "tr", "rz", "vrz", "tz", "lift", "vlift", "tl", "pop", "vpop", "tp", "st", "vst"] as const) s[key].length = count;
     if (fresh) for (let i = 0; i < count; i++) paint(i);
     kick();
   }, [size, active, flipped, count, paint, kick]);
@@ -918,13 +1019,13 @@ export function TeamLanyardRail({
     const y = clientY - box.top;
     const g = live.current.geo;
     const s = sim.current;
-    if (y < g.railY - 12) return null;
     let best = null as number | null;
     let distance = Infinity;
     for (let i = 0; i < live.current.count; i++) {
-      if (y > (g.cardTops[i] ?? 0) + g.H + Math.max(0, s.st[i] ?? 0) + 8) continue;
-      const d = Math.abs(x - (s.x[i] ?? 0));
-      if (d < g.W / 2 + 6 && d < distance) { best = i; distance = d; }
+      const cardTop = (g.cardTops[i] ?? 0) + (s.oy[i] ?? 0);
+      if (y < cardTop - 28 || y > cardTop + g.H + 16) continue;
+      const d = Math.abs(x - ((s.x[i] ?? 0) + (s.ox[i] ?? 0)));
+      if (d < g.W / 2 + 12 && d < distance) { best = i; distance = d; }
     }
     return best;
   };
@@ -967,16 +1068,28 @@ export function TeamLanyardRail({
       p.lastT = now;
       if (p.mode === "free" && s.drag >= 0) {
         const i = s.drag;
-        const [lo, hi] = feasible(i);
-        s.x[i] = clamp(event.clientX - stage.getBoundingClientRect().left - s.grab, lo, hi);
-        s.vx[i] = p.v * 1000;
-        s.st[i] = soft(Math.max(0, dy), L.geo.maxStretch);
+        const rawOx = p.startOx + dx;
+        const rawOy = p.startOy + dy;
+        const strapLen = L.geo.straps[i] ?? 96;
+        const maxUp = -strapLen - 18;
+        const clampedOx = clamp(rawOx, -170, 170);
+        const clampedOy = rawOy >= 0 ? soft(rawOy, L.geo.maxStretch) : clamp(rawOy, maxUp, 0);
+        s.ox[i] = clampedOx;
+        s.oy[i] = clampedOy;
+        s.st[i] = clampedOy;
+        s.vox[i] = p.v * 1000;
+        s.voy[i] = p.vy * 1000;
         s.vst[i] = 0;
-        const angle = clamp((-Math.atan2(dx, (L.geo.pendulum[i] ?? 200) + (s.st[i] ?? 0)) * 180) / Math.PI, -38, 38);
+        if (!seamless) {
+          const [lo, hi] = feasible(i);
+          s.x[i] = clamp(event.clientX - stage.getBoundingClientRect().left - s.grab, lo, hi);
+          s.vx[i] = p.v * 1000;
+        }
+        const angle = clamp((-Math.atan2(clampedOx, Math.max(40, strapLen + clampedOy)) * 180) / Math.PI, -38, 38);
         s.vsw[i] = ((angle - (s.sw[i] ?? 0)) / elapsed) * 1000 * 0.45;
         s.sw[i] = angle;
         s.trx[i] = clamp(dy * 0.14, -22, 22);
-        const pullRatio = clamp((s.st[i] ?? 0) / Math.max(1, L.geo.maxStretch), 0, 1);
+        const pullRatio = clamp(Math.max(0, clampedOy) / Math.max(1, L.geo.maxStretch), 0, 1);
         const twistBias = (i % 2 === 0 ? 1 : -1) * pullRatio * 28;
         s.ttiltY[i] = clamp(-p.v * 30 + twistBias, -48, 48);
         s.free = now + 1850;
@@ -1050,7 +1163,24 @@ export function TeamLanyardRail({
     const hit = nearest(event.clientX, event.clientY);
     const now = performance.now();
     pendingOpen.current = -1;
-    pointer.current = { ...pointer.current, id: event.pointerId, index: hit ?? -1, x: event.clientX, y: event.clientY, mode: "", kind: event.pointerType, lastX: event.clientX, lastY: event.clientY, lastT: now, v: 0, vy: 0, swipe: 0 };
+    const s = sim.current;
+    pointer.current = {
+      ...pointer.current,
+      id: event.pointerId,
+      index: hit ?? -1,
+      x: event.clientX,
+      y: event.clientY,
+      startOx: hit !== null ? (s.ox[hit] ?? 0) : 0,
+      startOy: hit !== null ? (s.oy[hit] ?? 0) : 0,
+      mode: "",
+      kind: event.pointerType,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      lastT: now,
+      v: 0,
+      vy: 0,
+      swipe: 0,
+    };
   };
 
   const finishPointer = (event: React.PointerEvent, cancelled: boolean) => {
@@ -1064,11 +1194,13 @@ export function TeamLanyardRail({
     if (p.mode === "free") {
       const i = s.pull >= 0 ? s.pull : s.drag;
       if (i >= 0) {
-        const pulled = s.st[i] ?? 0;
+        const pulled = Math.max(0, s.oy[i] ?? 0);
         const pullRatio = clamp(pulled / Math.max(1, L.geo.maxStretch), 0, 1);
         const dir = Math.abs(p.v) > 0.04 ? Math.sign(p.v) : (i % 2 === 0 ? 1 : -1);
         const twistKick = pulled > 28 ? dir * (360 + pullRatio * 960) : 0;
-        s.vx[i] = clamp(p.v * 1150, -1400, 1400);
+        s.vox[i] = clamp(p.v * 1150, -1400, 1400);
+        s.voy[i] = clamp(p.vy * 950 - pullRatio * 140, -900, 1100);
+        s.vx[i] = seamless ? 0 : clamp(p.v * 1150, -1400, 1400);
         s.vst[i] = clamp(p.vy * 950 - pullRatio * 140, -900, 1100);
         const swayBoost = Math.abs(p.v) < 0.08 ? dir * pullRatio * 22 : 0;
         s.vsw[i] = (s.vsw[i] ?? 0) + clamp(-p.v * 135, -180, 180) + swayBoost;
@@ -1252,59 +1384,69 @@ export function TeamLanyardRail({
                     "inset 0 1px 1px rgba(255,255,255,0.85), inset 0 -1px 1px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.4)",
                 }}
               />
-              <span ref={(node) => { swings.current[i] = node; }} data-swing className="absolute inset-0 block" style={{ transformOrigin: `${W / 2}px ${g.pivotY}px` }}>
-                <span ref={(node) => { straps.current[i] = node; }} data-strap aria-hidden="true" className="absolute inset-0 block" style={{ ["--stretch" as string]: "0px" }}>
-                  <span
-                    className="absolute block bg-black/20 blur-[3px] dark:bg-black/55"
-                    style={{
-                      left: W / 2 - g.strapW / 2 + 3 * g.u,
-                      top: g.pivotY + 3,
-                      width: g.strapW,
-                      height: strap,
-                      transformOrigin: "50% 0%",
-                      transform: "scaleY(var(--stretch-ratio, 1))",
-                    }}
-                  />
-                  {/* 16-Segment Silky Satin Ribbon with Direct Elastic Stretch */}
-                  <span
-                    className="absolute block"
-                    style={{
-                      left: W / 2 - g.strapW / 2,
-                      top: g.pivotY - 2,
-                      width: g.strapW,
-                      height: strap + 4,
-                      transformOrigin: "50% 0%",
-                      transform: "scaleY(var(--stretch-ratio, 1)) scaleX(var(--pinch-ratio, 1))",
-                    }}
-                  >
+              <span ref={(node) => { swings.current[i] = node; }} data-swing className="absolute inset-0 block">
+                <span ref={(node) => { straps.current[i] = node; }} data-strap aria-hidden="true" className="absolute inset-0 block">
+                  {/* Dynamic Bending 3D Satin Ribbon Strap */}
+                  <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full overflow-visible">
+                    <defs>
+                      <linearGradient id={`${uid}-ribbon-${i}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#09090b" />
+                        <stop offset="18%" stopColor="#27272a" />
+                        <stop offset="38%" stopColor="var(--accent-dark)" />
+                        <stop offset="50%" stopColor="var(--accent-bright)" />
+                        <stop offset="62%" stopColor="var(--accent-mid)" />
+                        <stop offset="82%" stopColor="#27272a" />
+                        <stop offset="100%" stopColor="#09090b" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      ref={(node) => { strapShadows.current[i] = node; }}
+                      fill="none"
+                      stroke="rgba(0,0,0,0.38)"
+                      strokeWidth={g.strapW}
+                      strokeLinecap="round"
+                      style={{ filter: "blur(2.5px)" }}
+                      d={`M ${(W / 2 + 3 * g.u).toFixed(1)} ${(g.pivotY + 4).toFixed(1)} L ${(W / 2 + 3 * g.u).toFixed(1)} ${(g.pivotY + strap + 4).toFixed(1)}`}
+                    />
                     {Array.from({ length: 16 }, (_, k) => {
-                      const segH = (strap + 4) / 16;
+                      const y0 = g.pivotY + (strap * k) / 16;
+                      const y1 = g.pivotY + (strap * (k + 1)) / 16;
+                      const hw = g.strapW / 2;
                       return (
-                        <span
+                        <polygon
                           key={k}
                           ref={(node) => { twistSegs.current[i * 16 + k] = node; }}
-                          className="absolute inset-x-0 block overflow-hidden"
-                          style={{
-                            top: k * segH,
-                            height: segH + 1.4,
-                            transformOrigin: "50% 50%",
-                            boxShadow:
-                              "inset 1px 0 0 rgba(255,255,255,0.22), inset -1px 0 0 rgba(0,0,0,0.5)",
-                            background: [
-                              "linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 45%, rgba(0,0,0,0.22) 100%)",
-                              "linear-gradient(90deg, #09090b 0%, #27272a 18%, var(--accent-dark) 38%, var(--accent-bright) 49%, var(--accent-mid) 60%, #27272a 82%, #09090b 100%)",
-                            ].join(","),
-                          }}
-                        >
-                          {k === 0 && (
-                            <span className="absolute inset-x-0 top-0 block bg-black/30" style={{ height: 6 * g.u }} />
-                          )}
-                        </span>
+                          fill={`url(#${uid}-ribbon-${i})`}
+                          points={`${(W / 2 - hw).toFixed(1)},${y0.toFixed(1)} ${(W / 2 + hw).toFixed(1)},${y0.toFixed(1)} ${(W / 2 + hw).toFixed(1)},${y1.toFixed(1)} ${(W / 2 - hw).toFixed(1)},${y1.toFixed(1)}`}
+                        />
                       );
                     })}
-                  </span>
+                    <path
+                      ref={(node) => { strapEdges.current[i] = node; }}
+                      fill="none"
+                      stroke="rgba(0,0,0,0.52)"
+                      strokeWidth="1"
+                      strokeLinejoin="round"
+                      d={`M ${(W / 2 - g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 - g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)} M ${(W / 2 + g.strapW / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2 + g.strapW / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                    />
+                    <path
+                      ref={(node) => { strapSheens.current[i] = node; }}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.22)"
+                      strokeWidth={Math.max(1.2, g.strapW * 0.22)}
+                      strokeLinecap="round"
+                      d={`M ${(W / 2).toFixed(1)} ${g.pivotY.toFixed(1)} L ${(W / 2).toFixed(1)} ${(g.pivotY + strap).toFixed(1)}`}
+                    />
+                  </svg>
                   {/* HD Brushed Steel Swivel Loop */}
-                  <svg aria-hidden="true" className="absolute overflow-visible drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" style={{ left: W / 2 - g.strapW * 0.78, top: g.pivotY - 4 * g.u, width: g.strapW * 1.56, height: 8.5 * g.u }} viewBox="0 0 32 16" preserveAspectRatio="none">
+                  <svg
+                    ref={(node) => { swivels.current[i] = node; }}
+                    aria-hidden="true"
+                    className="absolute overflow-visible drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+                    style={{ left: W / 2 - g.strapW * 0.78, top: g.pivotY - 4 * g.u, width: g.strapW * 1.56, height: 8.5 * g.u, transformOrigin: "50% 50%" }}
+                    viewBox="0 0 32 16"
+                    preserveAspectRatio="none"
+                  >
                     <defs>
                       <linearGradient id={`${uid}-chrome`} x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%" stopColor="#52525b" />
