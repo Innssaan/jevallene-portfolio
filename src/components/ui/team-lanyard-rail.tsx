@@ -1013,12 +1013,15 @@ export function TeamLanyardRail({
     const y = clientY - box.top;
     const g = live.current.geo;
     const s = sim.current;
+    if (y < g.railY - 16) return null;
     let best = null as number | null;
     let distance = Infinity;
     for (let i = 0; i < live.current.count; i++) {
       const cardTop = (g.cardTops[i] ?? 0) + (s.oy[i] ?? 0);
-      if (y < cardTop - 28 || y > cardTop + g.H + 16) continue;
-      const d = Math.abs(x - ((s.x[i] ?? 0) + (s.ox[i] ?? 0)));
+      if (y > cardTop + g.H + 16) continue;
+      const dCard = Math.abs(x - ((s.x[i] ?? 0) + (s.ox[i] ?? 0)));
+      const dRing = Math.abs(x - (s.x[i] ?? 0));
+      const d = y < cardTop ? Math.min(dCard, dRing) : dCard;
       if (d < g.W / 2 + 12 && d < distance) { best = i; distance = d; }
     }
     return best;
@@ -1065,19 +1068,20 @@ export function TeamLanyardRail({
         const rawOx = p.startOx + dx;
         const rawOy = p.startOy + dy;
         const strapLen = L.geo.straps[i] ?? 96;
-        const clampedOx = Math.sign(rawOx) * soft(Math.abs(rawOx), 190);
+        const [lo, hi] = feasible(i);
+        const baseTargetX = s.tx[i] ?? 0;
+        const nextAnchorX = clamp(baseTargetX + rawOx * 0.45, lo, hi);
+        const anchorShift = nextAnchorX - baseTargetX;
+        s.x[i] = nextAnchorX;
+        s.vx[i] = p.v * 500;
+        const clampedOx = Math.sign(rawOx - anchorShift) * soft(Math.abs(rawOx - anchorShift), 150);
         const clampedOy = rawOy >= 0 ? soft(rawOy, L.geo.maxStretch) : clamp(rawOy, -strapLen - 26, 0);
         s.ox[i] = clampedOx;
         s.oy[i] = clampedOy;
         s.st[i] = clampedOy;
-        s.vox[i] = p.v * 1000;
+        s.vox[i] = p.v * 700;
         s.voy[i] = p.vy * 1000;
         s.vst[i] = 0;
-        if (!seamless) {
-          const [lo, hi] = feasible(i);
-          s.x[i] = clamp(event.clientX - stage.getBoundingClientRect().left - s.grab, lo, hi);
-          s.vx[i] = p.v * 1000;
-        }
         s.vsw[i] = 0;
         s.sw[i] = 0;
         s.trx[i] = clamp(dy * 0.12, -18, 18);
@@ -1186,9 +1190,9 @@ export function TeamLanyardRail({
       if (i >= 0) {
         const pulled = Math.max(0, s.oy[i] ?? 0);
         const pullRatio = clamp(pulled / Math.max(1, L.geo.maxStretch), 0, 1);
-        s.vox[i] = clamp(p.v * 950, -1100, 1100);
+        s.vox[i] = clamp(p.v * 650, -850, 850);
         s.voy[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
-        s.vx[i] = seamless ? 0 : clamp(p.v * 950, -1100, 1100);
+        s.vx[i] = clamp(p.v * 550, -750, 750);
         s.vst[i] = clamp(p.vy * 850 - pullRatio * 120, -800, 950);
         s.vsw[i] = (s.vsw[i] ?? 0) + (Math.abs(p.v) > 0.08 ? clamp(-p.v * 70, -90, 90) : 0);
         s.vtiltY[i] = (s.vtiltY[i] ?? 0) + (Math.abs(p.v) > 0.14 ? clamp(p.v * 420, -520, 520) : 0);
