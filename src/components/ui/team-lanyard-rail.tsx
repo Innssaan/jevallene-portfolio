@@ -307,7 +307,7 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, index = 0 }: { item: L
 
         {/* Framed Editorial Portrait */}
         <span
-          className="relative mt-[0.42em] block h-[4.85em] w-full shrink-0 overflow-hidden rounded-[0.65em] border border-neutral-300 bg-neutral-100 dark:border-[#3A3A44] dark:bg-[#16161C]"
+          className="relative mt-[0.38em] block h-[4.65em] w-full shrink-0 overflow-hidden rounded-[0.65em] border border-neutral-300 bg-neutral-100 dark:border-[#3A3A44] dark:bg-[#16161C]"
           style={{
             transform: "translateZ(8px)",
             boxShadow: "0 0.35em 1em rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.06)",
@@ -337,24 +337,16 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, index = 0 }: { item: L
         </span>
 
         {/* Identity Block */}
-        <span className="mt-[0.45em] block w-full" style={{ transform: "translateZ(6px)" }}>
-          <span className="block truncate text-[1.04em] font-bold leading-tight tracking-tight">
+        <span className="mt-[0.48em] block w-full" style={{ transform: "translateZ(6px)" }}>
+          <span className="block truncate text-[1.06em] font-bold leading-none tracking-tight">
             {item.name}
           </span>
-          <span className="mt-[0.18em] block truncate text-[0.57em] font-semibold leading-snug text-accent">
+          <span className="mt-[0.24em] block truncate text-[0.57em] font-semibold leading-tight text-accent">
             {item.role}
           </span>
-          <span className="mt-[0.26em] flex flex-col gap-[0.12em] text-[0.51em] font-medium leading-tight text-neutral-600 dark:text-[#B4B4BC]">
-            {item.team && (
-              <span className="flex items-center gap-[0.42em] truncate">
-                <span className="size-[0.36em] shrink-0 rounded-full bg-accent/80" />
-                <span className="truncate">{item.team}</span>
-              </span>
-            )}
-            <span className="flex items-center gap-[0.42em] truncate">
-              <span className="size-[0.36em] shrink-0 rounded-full bg-neutral-400 dark:bg-neutral-500" />
-              <span className="truncate">Videographer · Photographer</span>
-            </span>
+          <span className="mt-[0.28em] block space-y-[0.08em] text-[0.5em] font-medium leading-snug text-neutral-500 dark:text-[#9A9AA6]">
+            {item.team && <span className="block truncate">{item.team}</span>}
+            <span className="block truncate">Videographer · Photographer</span>
           </span>
         </span>
 
