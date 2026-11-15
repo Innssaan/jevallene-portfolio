@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useReducedMotion,
@@ -64,6 +64,16 @@ export function Parallax({
 }: ParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
@@ -87,14 +97,18 @@ export function Parallax({
     <div
       ref={ref}
       className={className}
-      style={variant === "tilt" ? { perspective: 1000 } : undefined}
+      style={variant === "tilt" && isDesktop ? { perspective: 1000 } : undefined}
     >
       <motion.div
-        style={{
-          y,
-          scale: variant === "zoom" ? scale : undefined,
-          willChange: "transform",
-        }}
+        style={
+          isDesktop
+            ? {
+                y,
+                scale: variant === "zoom" ? scale : undefined,
+                willChange: "transform",
+              }
+            : undefined
+        }
       >
         {immediate ? (
           children

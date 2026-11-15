@@ -467,7 +467,7 @@ export default function App() {
             href="#kontak"
             className="inline-flex items-center gap-1 font-medium text-[#F5F5F7] transition-colors hover:text-accent-hover"
           >
-            {lang === "en" ? "Start a Project" : "Mulai Proyek"}
+            {lang === "en" ? "Start a Discussion" : "Mulai Berdiskusi"}
             <ArrowRight className="size-3" />
           </a>
         </div>
@@ -884,7 +884,7 @@ export default function App() {
                   </span>
                 </h1>
 
-                <p className="mt-4 text-base sm:text-lg font-semibold text-accent">
+                <p className="mt-4 min-h-[3.25rem] sm:min-h-[1.75rem] text-base sm:text-lg font-semibold text-accent">
                   <Typewriter
                     phrases={[
                       "Web Developer & UI/UX Designer",

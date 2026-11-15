@@ -136,7 +136,7 @@ export function SpotifySection() {
           >
             <div className="flex items-center justify-between px-2 pb-2.5">
               <span className="text-xs font-mono text-zinc-700 dark:text-[#C4C4CC]">
-                open.spotify.com/playlist/0jLgldvuOTDVtHrH2M48QT
+                Playlist Kangen · Teman Ngoding &amp; Fokus
               </span>
               <a
                 href={SPOTIFY_PLAYLIST_URL}
