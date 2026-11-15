@@ -49,7 +49,7 @@ const PROFILE_LANYARD: LanyardMember[] = [
     tone: 1,
     drop: 4,
     image: "/avatar-innssaan.jpg?v=5",
-    bio: "Creative studio di Jakarta yang merancang website modern, antarmuka intuitif, serta karya fotografi dan videografi berkarakter.",
+    bio: "Creative studio di Bandung yang merancang website modern, antarmuka intuitif, serta karya fotografi dan videografi berkarakter.",
     tags: ["React", "UI/UX", "Photography", "Videography"],
     links: [
       { label: "WhatsApp", href: "https://wa.me/628562010605" },
@@ -868,7 +868,7 @@ export default function App() {
                   <TextShimmer>CREATIVE STUDIO · JEVALLENE</TextShimmer>
                   <span className="hidden sm:inline-flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#35C46A]" />
-                    JAKARTA
+                    BANDUNG
                   </span>
                 </div>
 
@@ -897,8 +897,8 @@ export default function App() {
 
                 <p className="hero-subtitle mt-4">
                   {lang === "en"
-                    ? "Through Jevallene in Jakarta, I unite modern web engineering, UI/UX design, photography, and videography under one creative roof. From interactive interfaces to visual production, every detail is crafted to feel fast, refined, and unforgettable."
-                    : "Melalui Jevallene di Jakarta, saya memadukan rekayasa web modern, desain UI/UX, serta fotografi dan videografi dalam satu atap kreatif. Mulai dari antarmuka interaktif hingga produksi visual, setiap detail dibangun agar terasa cepat, matang, dan berkesan."}
+                    ? "Through Jevallene in Bandung, I unite modern web engineering, UI/UX design, photography, and videography under one creative roof. From interactive interfaces to visual production, every detail is crafted to feel fast, refined, and unforgettable."
+                    : "Melalui Jevallene di Bandung, saya memadukan rekayasa web modern, desain UI/UX, serta fotografi dan videografi dalam satu atap kreatif. Mulai dari antarmuka interaktif hingga produksi visual, setiap detail dibangun agar terasa cepat, matang, dan berkesan."}
                 </p>
 
                 <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -1367,7 +1367,7 @@ export default function App() {
                 Lokasi &amp; Status
               </h3>
               <ul className="space-y-1.5 text-[11px]">
-                <li className="text-neutral-500 dark:text-[#7E7E88]">Jakarta, Indonesia</li>
+                <li className="text-neutral-500 dark:text-[#7E7E88]">Bandung, Indonesia</li>
                 <li>
                   <a href="#kontak" className="transition-colors hover:text-accent dark:hover:text-[#FAFAFA]">
                     Tersedia untuk Kolaborasi
@@ -1497,7 +1497,7 @@ export default function App() {
                 </motion.a>
               </div>
               <span className="hidden text-neutral-500 sm:inline dark:text-[#7E7E88]">
-                Jakarta, Indonesia
+                Bandung, Indonesia
               </span>
               <motion.button
                 type="button"

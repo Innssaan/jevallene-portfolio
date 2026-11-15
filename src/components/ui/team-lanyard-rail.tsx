@@ -359,7 +359,7 @@ const BadgeFaces = React.memo(function BadgeFaces({ item, index = 0 }: { item: L
               BASE
             </span>
             <span className="block truncate font-mono text-[0.54em] font-semibold">
-              JAKARTA · ID
+              BANDUNG · ID
             </span>
           </span>
           <span className="block border-l border-neutral-200 pl-[0.45em] dark:border-[#27272E]">

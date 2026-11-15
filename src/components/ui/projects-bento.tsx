@@ -29,21 +29,21 @@ export interface ProjectItem {
 
 const PROJECTS: ProjectItem[] = [
   {
-    id: "taskflow",
+    id: "olu-dashboard",
     category: "web",
     categoryLabel: { id: "Web App", en: "Web App" },
     image:
       "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Pratinjau dashboard analitik dan manajemen tugas TaskFlow",
+    imageAlt: "Pratinjau dashboard analitik dan manajemen tugas OLU — Our Little Universe",
     gradientFallback: "from-indigo-500 via-violet-500 to-fuchsia-500",
-    title: "TaskFlow Dashboard",
+    title: "OLU Dashboard · Our Little Universe",
     description: {
       id: "Manajemen tugas tim dengan drag-and-drop, filter cepat, dan mode gelap.",
       en: "Team task management with drag-and-drop, quick filters, and dark mode.",
     },
     fullDescription: {
-      id: "TaskFlow Dashboard dirancang untuk tim produk dan pengembang yang membutuhkan alur kerja kanban yang ringan namun responsif. Antarmukanya memadukan papan tugas interaktif drag-and-drop, filter status dan prioritas secara real-time, ringkasan analitik progres mingguan, serta mode gelap kontras tinggi yang nyaman dipakai berjam-jam.",
-      en: "TaskFlow Dashboard is built for product teams and developers who need a lightweight yet responsive kanban workflow. It combines interactive drag-and-drop task boards, real-time status and priority filters, weekly progress analytics, and a high-contrast dark mode designed for long sessions.",
+      id: "OLU Dashboard (Our Little Universe) dirancang untuk tim produk dan pengembang yang membutuhkan alur kerja kanban yang ringan namun responsif. Antarmukanya memadukan papan tugas interaktif drag-and-drop, filter status dan prioritas secara real-time, ringkasan analitik progres mingguan, serta mode gelap kontras tinggi yang nyaman dipakai berjam-jam.",
+      en: "OLU Dashboard (Our Little Universe) is built for product teams and developers who need a lightweight yet responsive kanban workflow. It combines interactive drag-and-drop task boards, real-time status and priority filters, weekly progress analytics, and a high-contrast dark mode designed for long sessions.",
     },
     highlights: {
       id: [
@@ -69,21 +69,21 @@ const PROJECTS: ProjectItem[] = [
     ],
   },
   {
-    id: "kopilokal",
+    id: "kokop",
     category: "design",
     categoryLabel: { id: "UI/UX Design", en: "UI/UX Design" },
     image:
       "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Foto kopi spesialti nusantara untuk proyek KopiLokal E-Commerce",
+    imageAlt: "Foto kopi spesialti nusantara untuk proyek KoKoP — Kopi Kopi Online Pas",
     gradientFallback: "from-amber-500 via-orange-500 to-rose-500",
-    title: "KopiLokal E-Commerce",
+    title: "KoKoP — Kopi Kopi Online Pas",
     description: {
       id: "Desain toko online kopi nusantara dengan storytelling produk & checkout cepat.",
       en: "Indonesian specialty coffee storefront UI focused on storytelling & fast checkout.",
     },
     fullDescription: {
-      id: "KopiLokal E-Commerce adalah eksplorasi UI/UX untuk brand kopi spesialti lokal yang ingin menonjolkan asal-usul biji kopi (single origin) dari berbagai daerah di Indonesia. Fokus utamanya adalah pengalaman eksplorasi profil rasa yang intuitif, halaman detail produk editorial, dan alur checkout ringkas dalam tiga langkah.",
-      en: "KopiLokal E-Commerce is a UI/UX exploration for a local specialty coffee brand highlighting single-origin beans across Indonesia. It centers on intuitive flavor profile discovery, editorial product pages, and a streamlined three-step checkout flow.",
+      id: "KoKoP (Kopi Kopi Online Pas) adalah eksplorasi UI/UX untuk brand kopi spesialti lokal yang ingin menonjolkan asal-usul biji kopi (single origin) dari berbagai daerah di Indonesia. Fokus utamanya adalah pengalaman eksplorasi profil rasa yang intuitif, halaman detail produk editorial, dan alur checkout ringkas dalam tiga langkah.",
+      en: "KoKoP (Kopi Kopi Online Pas) is a UI/UX exploration for a local specialty coffee brand highlighting single-origin beans across Indonesia. It centers on intuitive flavor profile discovery, editorial product pages, and a streamlined three-step checkout flow.",
     },
     highlights: {
       id: [
@@ -143,21 +143,21 @@ const PROJECTS: ProjectItem[] = [
     ],
   },
   {
-    id: "urban-visual-stories",
+    id: "sannverse-visual-stories",
     category: "visual",
     categoryLabel: { id: "Foto & Video", en: "Photo & Video" },
     image:
       "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Produksi fotografi dan videografi sinematik Urban Visual Stories",
+    imageAlt: "Produksi fotografi dan videografi sinematik Sannverse Visual Stories",
     gradientFallback: "from-rose-500 via-fuchsia-500 to-indigo-500",
-    title: "Urban Visual Stories",
+    title: "Sannverse Visual Stories",
     description: {
       id: "Serial fotografi editorial & video reels sinematik untuk brand lokal dan acara.",
       en: "Editorial photography & 4K cinematic reels for local brands and events.",
     },
     fullDescription: {
-      id: "Urban Visual Stories merangkum karya produksi visual mulai dari pemotretan editorial potret dan produk hingga video pendek vertikal berirama sinematik. Setiap proyek digarap menyeluruh dari tahap konsep visual, pengarahan cahaya di lokasi, pengambilan gambar 4K, hingga penyuntingan dan color grading.",
-      en: "Urban Visual Stories brings together visual production spanning editorial portraits, product shoots, and cinematic vertical short-form videos. Each project covers visual direction, on-set lighting, 4K capture, editing, and color grading.",
+      id: "Sannverse Visual Stories merangkum karya produksi visual mulai dari pemotretan editorial potret dan produk hingga video pendek vertikal berirama sinematik. Setiap proyek digarap menyeluruh dari tahap konsep visual, pengarahan cahaya di lokasi, pengambilan gambar 4K, hingga penyuntingan dan color grading.",
+      en: "Sannverse Visual Stories brings together visual production spanning editorial portraits, product shoots, and cinematic vertical short-form videos. Each project covers visual direction, on-set lighting, 4K capture, editing, and color grading.",
     },
     highlights: {
       id: [

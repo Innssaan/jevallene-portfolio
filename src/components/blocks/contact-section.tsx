@@ -31,7 +31,7 @@ const REVIEWERS = [
   {
     initials: "SR",
     name: "Sinta Rahma",
-    role: "Founder, KopiLokal",
+    role: "Founder, KoKoP",
     quote:
       "Tampilan toko online jadi jauh lebih ringan dan alur checkout meningkat signifikan.",
   },
@@ -176,7 +176,7 @@ export default function ContactSection({
                 </a>
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="size-3.5" />
-                  Jakarta, Indonesia
+                  Bandung, Indonesia
                 </span>
               </div>
             </div>

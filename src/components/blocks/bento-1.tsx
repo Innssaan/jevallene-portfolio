@@ -26,7 +26,7 @@ export default function Bento1() {
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
           <MapPin className="size-3.5 text-accent" />
-          Jakarta, ID
+          Bandung, ID
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#35C46A]/40 bg-[#35C46A]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#35C46A]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#35C46A] animate-pulse" />
