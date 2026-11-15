@@ -74,10 +74,6 @@ const MAX_STRETCH = 210;
 const FIRST_DELAY = 1100;
 const FLIP_DELAY = 700;
 const SWING_K = 18;
-const SWING_DAMP = 1.15;
-const LAG = 0.14;
-const REEL_K = 46;
-const REEL_ZETA = 0.19;
 const REST_Y = [9, -10, 7, -8, 10, -7, 8, -9];
 const REST_Z = [-1.6, 1.2, -2, 1.5, -1, 1.8, -1.3, 2];
 const DROPS = [6, 20, 0, 13, 22, 4, 16, 9];
@@ -542,12 +538,10 @@ export function TeamLanyardRail({
     const slot = slots.current[i];
     if (!slot) return;
     slot.style.transform = `translate3d(${((s.x[i] ?? 0) - g.W / 2).toFixed(2)}px,0,0)`;
-    const sw = s.sw[i] ?? 0;
     const lift = s.lift[i] ?? 0;
     const pop = s.pop[i] ?? 0;
     const strapBase = Math.max(1, g.straps[i] ?? 96);
-    const swayX = s.drag === i ? 0 : -Math.sin((sw * Math.PI) / 180) * strapBase * 0.85;
-    const clipX = (s.ox[i] ?? 0) + swayX;
+    const clipX = s.ox[i] ?? 0;
     const clipY = (s.oy[i] ?? 0) - 4 * lift;
     const st = clipY;
 
@@ -609,10 +603,7 @@ export function TeamLanyardRail({
       swivel.style.transform = `rotate(${clamp(startAngle * 0.55, -28, 28).toFixed(2)}deg)`;
     }
 
-    const endTangentAngle = (Math.atan2(bx - c2x, Math.max(12, by - c2y)) * -180) / Math.PI;
-    const tautBlend = clamp(1 - slack / 28, 0, 1);
-    const inertiaTilt = clamp(((s.beta[i] ?? 0) - sw) * 0.18, -10, 10);
-    const cardAngle = endTangentAngle * 0.45 * tautBlend + inertiaTilt + (s.rz[i] ?? 0);
+    const cardAngle = (s.sw[i] ?? 0) + (s.rz[i] ?? 0);
 
     const hang = hangs.current[i];
     if (hang) {
@@ -689,51 +680,68 @@ export function TeamLanyardRail({
         }
       }
       for (let i = 0; i < n; i++) {
-        const dv = (s.vx[i] ?? 0) - (s.px[i] ?? 0);
         s.px[i] = s.vx[i] ?? 0;
-        if (i !== s.pull) {
+        if (i !== s.drag && i !== s.pull) {
+          const L = Math.max(20, g.straps[i] ?? 96);
+          let px = s.ox[i] ?? 0;
+          let py = L + (s.oy[i] ?? 0);
+          let vx = s.vox[i] ?? 0;
+          let vy = s.voy[i] ?? 0;
+
+          // Real 2D gravity + gentle air damping
+          vy += 2200 * h;
+          const air = Math.exp(-2.1 * h);
+          vx *= air;
+          vy *= air;
+
+          px += vx * h;
+          py += vy * h;
+
+          // Rope/strap constraint: firm when taut, allows natural pendulum arc & slack sag
+          const dist = Math.hypot(px, py);
+          if (dist > L && dist > 0.001) {
+            const ux = px / dist;
+            const uy = py / dist;
+            const stretch = dist - L;
+            const vRad = vx * ux + vy * uy;
+            const pullBack = 460 * stretch + 24 * vRad;
+            vx -= ux * pullBack * h;
+            vy -= uy * pullBack * h;
+            if (stretch > 36) {
+              const cap = L + 36;
+              px = ux * cap;
+              py = uy * cap;
+            }
+          }
+
+          s.ox[i] = px;
+          s.oy[i] = py - L;
+          s.vox[i] = vx;
+          s.voy[i] = vy;
+          s.st[i] = s.oy[i] ?? 0;
+
+          // Card gravity tilt around clip: follows strap angle gently when taut, settles to 0deg
+          const taut = dist >= L * 0.96;
+          const targetSw = taut ? clamp((-Math.atan2(px, Math.max(20, py)) * 180) / Math.PI * 0.35, -24, 24) : 0;
+          const vsw = s.vsw[i] ?? 0;
           const sw = s.sw[i] ?? 0;
-          const tSec = now * 0.001;
-          const idleAngle = live.current.reduced
-            ? 0
-            : Math.sin(tSec * 0.85 + i * 1.3) * 1.45 +
-            Math.sin(tSec * 1.37 + i * 0.7) * 0.75;
-          const vsw = clamp((s.vsw[i] ?? 0) + (g.couple[i] ?? 0.09) * clamp(dv, -1100, 1100), -180, 180);
-          const next = vsw + (-(g.swingK[i] ?? SWING_K) * (sw - idleAngle) - SWING_DAMP * vsw) * h;
-          s.vsw[i] = next;
-          s.sw[i] = clamp(sw + next * h, -42, 42);
+          const asw = -28 * (sw - targetSw) - 6.5 * vsw;
+          s.vsw[i] = vsw + asw * h;
+          s.sw[i] = clamp(sw + (s.vsw[i] ?? 0) * h, -32, 32);
+        } else {
+          const vsw = s.vsw[i] ?? 0;
+          const sw = s.sw[i] ?? 0;
+          const asw = -32 * sw - 7.5 * vsw;
+          s.vsw[i] = vsw + asw * h;
+          s.sw[i] = clamp(sw + (s.vsw[i] ?? 0) * h, -24, 24);
         }
-        s.beta[i] = (s.beta[i] ?? 0) + ((s.sw[i] ?? 0) - (s.beta[i] ?? 0)) * Math.min(1, h / LAG);
+        s.beta[i] = s.sw[i] ?? 0;
         spring(s.ry, s.vry, s.tr[i] ?? 0, i, 170, 0.62, h);
         spring(s.rx, s.vrx, s.trx[i] ?? 0, i, 90, 0.48, h);
         spring(s.tiltY, s.vtiltY, s.ttiltY[i] ?? 0, i, 24, 0.46, h);
         spring(s.rz, s.vrz, s.tz[i] ?? 0, i, 120, 0.8, h);
         spring(s.lift, s.vlift, s.tl[i] ?? 0, i, 200, 0.75, h);
         spring(s.pop, s.vpop, s.tp[i] ?? 0, i, 160, 0.55, h);
-        if (i !== s.drag && i !== s.pull) {
-          spring(s.ox, s.vox, 0, i, 38, 0.36, h);
-          const slack = (s.oy[i] ?? 0) < 0;
-          spring(s.oy, s.voy, 0, i, slack ? 26 : REEL_K, slack ? 0.34 : 0.32, h);
-          const topStop = -(g.straps[i] ?? 96) - 18;
-          if ((s.oy[i] ?? 0) < topStop) {
-            s.oy[i] = topStop;
-            s.voy[i] = Math.abs(s.voy[i] ?? 0) * 0.45;
-          }
-          s.st[i] = s.oy[i] ?? 0;
-        }
-        if (i !== s.pull) {
-          const slack = (s.st[i] ?? 0) < 0;
-          spring(s.st, s.vst, 0, i, slack ? 20 : REEL_K, slack ? 0.25 : REEL_ZETA, h);
-          const topStop = -48 * g.u;
-          if ((s.st[i] ?? 0) < topStop) {
-            s.st[i] = topStop;
-            if ((s.vst[i] ?? 0) < -35) {
-              s.vst[i] = Math.abs(s.vst[i] ?? 0) * 0.65;
-            } else {
-              s.vst[i] = 0;
-            }
-          }
-        }
       }
       for (let a = 0; a < n - 1; a++) {
         const b = a + 1;
@@ -1041,9 +1049,17 @@ export function TeamLanyardRail({
         const rawOx = p.startOx + dx;
         const rawOy = p.startOy + dy;
         const strapLen = L.geo.straps[i] ?? 96;
-        const maxUp = -strapLen - 18;
-        const clampedOx = clamp(rawOx, -170, 170);
-        const clampedOy = rawOy >= 0 ? soft(rawOy, L.geo.maxStretch) : clamp(rawOy, maxUp, 0);
+        const relY = strapLen + rawOy;
+        const rawDist = Math.hypot(rawOx, relY);
+        let clampedOx = rawOx;
+        let clampedOy = rawOy;
+        if (rawDist > strapLen && rawDist > 0.001) {
+          const capped = strapLen + soft(rawDist - strapLen, 34);
+          const scale = capped / rawDist;
+          clampedOx = rawOx * scale;
+          clampedOy = relY * scale - strapLen;
+        }
+        clampedOy = Math.max(-strapLen - 16, clampedOy);
         s.ox[i] = clampedOx;
         s.oy[i] = clampedOy;
         s.st[i] = clampedOy;
