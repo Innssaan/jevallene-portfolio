@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Check, Copy, Mail } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
+import { playCopySuccessSound } from "@/lib/sound";
 
 const EMAIL = "rifkitv21@gmail.com";
 
@@ -11,6 +12,7 @@ export default function Bento11() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(EMAIL);
+      playCopySuccessSound();
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {

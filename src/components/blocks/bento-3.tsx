@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Terminal } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
+import { playTabSwitchSound } from "@/lib/sound";
 
 interface CheckItem {
   id: string;
@@ -74,7 +75,10 @@ export default function Bento3() {
             <motion.button
               key={item.id}
               type="button"
-              onClick={() => setSelected(item.id)}
+              onClick={() => {
+                playTabSwitchSound();
+                setSelected(item.id);
+              }}
               whileTap={{ scale: 0.985 }}
               className={`flex w-full cursor-pointer items-center justify-between rounded-xl border px-3.5 py-2.5 text-left transition-all ${
                 active

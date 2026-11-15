@@ -274,3 +274,159 @@ export function playRocketLaunchSound(): void {
   turbine.start(now);
   turbine.stop(now + 1.05);
 }
+
+/**
+ * Soft airy whoosh + glass chime when opening a detail lightbox modal.
+ */
+export function playModalOpenSound(): void {
+  if (isSoundMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+
+  // Filtered air sweep
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoiseBuffer(ctx);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(380, now);
+  filter.frequency.exponentialRampToValueAtTime(1400, now + 0.14);
+  filter.Q.value = 1.6;
+
+  const nGain = ctx.createGain();
+  nGain.gain.setValueAtTime(0.001, now);
+  nGain.gain.linearRampToValueAtTime(0.035, now + 0.04);
+  nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+  noise.connect(filter);
+  filter.connect(nGain);
+  nGain.connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.2);
+
+  // Delicate glass chime
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(660, now + 0.02);
+  osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+  gain.gain.setValueAtTime(0.001, now + 0.02);
+  gain.gain.linearRampToValueAtTime(0.045, now + 0.04);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now + 0.02);
+  osc.stop(now + 0.23);
+}
+
+/**
+ * Crisp card-swipe / shutter tick when sliding gallery photos or items.
+ */
+export function playSlideSound(): void {
+  if (isSoundMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoiseBuffer(ctx);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.setValueAtTime(1600, now);
+  filter.frequency.exponentialRampToValueAtTime(650, now + 0.06);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.045, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.07);
+}
+
+/**
+ * Cheerful two-note marimba chime when copying email or color tokens.
+ */
+export function playCopySuccessSound(): void {
+  if (isSoundMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const notes = [1046.5, 1318.5]; // C6 -> E6
+
+  notes.forEach((freq, i) => {
+    const t = now + i * 0.065;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, t);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.06, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.17);
+  });
+}
+
+/**
+ * Subtle tactile pop when switching filter tabs or cards.
+ */
+export function playTabSwitchSound(): void {
+  if (isSoundMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(320, now);
+  osc.frequency.exponentialRampToValueAtTime(520, now + 0.035);
+
+  gain.gain.setValueAtTime(0.05, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.055);
+}
+
+/**
+ * Warm 3-note shimmer arpeggio when switching accent color theme.
+ */
+export function playThemeChimeSound(): void {
+  if (isSoundMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const chord = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+  chord.forEach((freq, i) => {
+    const t = now + i * 0.045;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, t);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.045, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  });
+}

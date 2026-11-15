@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
+import { playModalOpenSound, playSlideSound } from "@/lib/sound";
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -75,6 +76,14 @@ export function DetailLightboxModal({
     setDragOffset(0);
   }, [activeIndex, item?.id]);
 
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !prevOpenRef.current) {
+      playModalOpenSound();
+    }
+    prevOpenRef.current = isOpen;
+  }, [isOpen]);
+
   const handleHeroPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (!hasGallery) return;
     if ((e.target as HTMLElement).closest("button")) return;
@@ -92,8 +101,10 @@ export function DetailLightboxModal({
     swipeStartX.current = null;
     setDragOffset(0);
     if (dx < -40) {
+      playSlideSound();
       setSlideIndex((prev) => (prev + 1) % gallery.length);
     } else if (dx > 40) {
+      playSlideSound();
       setSlideIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
     }
   };
@@ -241,7 +252,10 @@ export function DetailLightboxModal({
                   <>
                     <button
                       type="button"
-                      onClick={() => setSlideIndex((prev) => (prev - 1 + gallery.length) % gallery.length)}
+                      onClick={() => {
+                        playSlideSound();
+                        setSlideIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+                      }}
                       aria-label={lang === "en" ? "Previous photo" : "Foto sebelumnya"}
                       className="absolute left-3 top-1/2 z-20 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition-all hover:scale-105 hover:border-accent hover:bg-accent"
                     >
@@ -249,7 +263,10 @@ export function DetailLightboxModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSlideIndex((prev) => (prev + 1) % gallery.length)}
+                      onClick={() => {
+                        playSlideSound();
+                        setSlideIndex((prev) => (prev + 1) % gallery.length);
+                      }}
                       aria-label={lang === "en" ? "Next photo" : "Foto berikutnya"}
                       className="absolute right-3 top-1/2 z-20 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition-all hover:scale-105 hover:border-accent hover:bg-accent"
                     >

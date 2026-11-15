@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Command } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
+import { playTabSwitchSound, playThemeChimeSound } from "@/lib/sound";
 
 const COLOR_THEMES = ["crimson", "ocean", "emerald", "violet", "amber"] as const;
 
@@ -18,6 +19,7 @@ export default function Bento25() {
     (selector: string, msg: string) => {
       const el = document.querySelector(selector);
       if (el) {
+        playTabSwitchSound();
         el.scrollIntoView({ behavior: "smooth", block: "start" });
         flash(msg);
       }
@@ -40,6 +42,7 @@ export default function Bento25() {
     } catch {
       // ignore storage errors
     }
+    playThemeChimeSound();
     flash(`Tema aksen: ${next}`);
   }, [flash]);
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Copy, Palette } from "lucide-react";
 import { GlowCard } from "@/components/ui/glow-card";
+import { playCopySuccessSound, playTabSwitchSound } from "@/lib/sound";
 
 const SWATCHES = [
   { name: "Canvas", hex: "#08080A" },
@@ -34,6 +35,7 @@ export default function Bento30() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(displayValue);
+      playCopySuccessSound();
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -90,7 +92,10 @@ export default function Bento30() {
             <button
               key={swatch.hex}
               type="button"
-              onClick={() => setActive(swatch)}
+              onClick={() => {
+                playTabSwitchSound();
+                setActive(swatch);
+              }}
               aria-label={swatch.name}
               className={`h-8 cursor-pointer rounded-lg border transition-transform ${
                 isCurrent
