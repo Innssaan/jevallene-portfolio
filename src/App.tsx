@@ -761,8 +761,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Kursor */}
-                    <div className="flex items-center justify-between gap-2">
+                    {/* Kursor (hanya tampil di desktop / layar md+) */}
+                    <div className="hidden md:flex items-center justify-between gap-2">
                       <span className="flex items-center gap-2 text-xs text-[#D4D4D8]">
                         <MousePointer2 size={13} className="text-[#9A9AA2]" />
                         {lang === "en" ? "Cursor" : "Kursor"}
