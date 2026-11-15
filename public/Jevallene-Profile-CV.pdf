@@ -1,0 +1,209 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 3293 >>
+stream
+BT
+/F2 22 Tf
+0.90 0.08 0.16 rg
+50 760 Td
+(JEVALLENE  |  INSSSAAN) Tj
+ET
+BT
+/F1 12 Tf
+0.35 0.35 0.40 rg
+50 740 Td
+(Company Profile & Curriculum Vitae) Tj
+ET
+BT
+/F1 10 Tf
+0.30 0.30 0.35 rg
+50 722 Td
+(Jakarta, Indonesia  |  rifkitv21@gmail.com  |  github.com/Innssaan) Tj
+ET
+BT
+/F1 10 Tf
+0.80 0.80 0.84 rg
+50 708 Td
+(____________________________________________________________________________) Tj
+ET
+BT
+/F2 12 Tf
+0.90 0.08 0.16 rg
+50 682 Td
+(TENTANG JEVALLENE) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 664 Td
+(Jevallene adalah perusahaan personal milik Innssaan yang berfokus pada pengembangan web) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 650 Td
+(modern, perancangan sistem UI/UX, serta produksi fotografi & videografi sinematik.) Tj
+ET
+BT
+/F2 12 Tf
+0.90 0.08 0.16 rg
+50 620 Td
+(LAYANAN UTAMA) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 602 Td
+(- Web App & Frontend Engineering \(React 19, Next.js 15, TypeScript, Tailwind CSS\)) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 588 Td
+(- UI/UX Design & Design System \(Figma, Prototyping, Micro-interactions\)) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 574 Td
+(- Photography & Videography \(Editorial Portrait, Product, Reels & Color Grading\)) Tj
+ET
+BT
+/F2 12 Tf
+0.90 0.08 0.16 rg
+50 544 Td
+(PENGALAMAN & PENDIDIKAN) Tj
+ET
+BT
+/F2 10 Tf
+0.12 0.12 0.15 rg
+50 526 Td
+(2024 - Sekarang  |  Fullstack Developer \(Perusahaan Teknologi\)) Tj
+ET
+BT
+/F1 9.5 Tf
+0.30 0.30 0.35 rg
+50 512 Td
+(Mengembangkan aplikasi web end-to-end dari antarmuka UI, API backend, hingga basis data.) Tj
+ET
+BT
+/F2 10 Tf
+0.12 0.12 0.15 rg
+50 492 Td
+(2022 - 2024      |  Freelance Web Designer & Developer \(Independen\)) Tj
+ET
+BT
+/F1 9.5 Tf
+0.30 0.30 0.35 rg
+50 478 Td
+(Membangun website profil bisnis, landing page, dan portofolio digital untuk UMKM & kreator.) Tj
+ET
+BT
+/F2 10 Tf
+0.12 0.12 0.15 rg
+50 458 Td
+(2018 - Sekarang  |  Photographer & Videographer \(Kreatif & Komersial\)) Tj
+ET
+BT
+/F1 9.5 Tf
+0.30 0.30 0.35 rg
+50 444 Td
+(Produksi foto potret, produk, dokumentasi event, serta video pendek 4K sinematik.) Tj
+ET
+BT
+/F2 10 Tf
+0.12 0.12 0.15 rg
+50 424 Td
+(2022             |  S1 Teknik Informatika \(Universitas\)) Tj
+ET
+BT
+/F1 9.5 Tf
+0.30 0.30 0.35 rg
+50 410 Td
+(Fokus pada Software Engineering, Human-Computer Interaction \(HCI\), dan Web Dev.) Tj
+ET
+BT
+/F2 12 Tf
+0.90 0.08 0.16 rg
+50 380 Td
+(PROYEK PILIHAN) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 362 Td
+(- TaskFlow Dashboard: Aplikasi manajemen tugas kanban \(React, TypeScript, 99 Lighthouse\)) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 348 Td
+(- KopiLokal E-Commerce: Desain sistem & UI/UX toko kopi spesialti nusantara \(Figma\)) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 334 Td
+(- Markdown Note Studio: Editor catatan offline-ready dengan ekspor HTML & PDF instan) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 320 Td
+(- Urban Visual Stories: Serial fotografi editorial & video reels sinematik 4K) Tj
+ET
+BT
+/F2 12 Tf
+0.90 0.08 0.16 rg
+50 290 Td
+(TECH STACK) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 272 Td
+(React 19, Next.js 15, TypeScript 5.6, Tailwind CSS 3.4, Node.js 22, PostgreSQL 16, Redis 7, Docker 27) Tj
+ET
+BT
+/F2 12 Tf
+0.90 0.08 0.16 rg
+50 242 Td
+(KONTAK & KOLABORASI) Tj
+ET
+BT
+/F1 10 Tf
+0.12 0.12 0.15 rg
+50 224 Td
+(Email: rifkitv21@gmail.com  |  WhatsApp: +62 856-2010-605  |  IG: @innssaan_  |  TikTok: @sannveerse) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000003596 00000 n 
+0000003666 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3741
+%%EOF
