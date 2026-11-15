@@ -41,29 +41,10 @@ interface TermLine {
    Constants
    ========================================================================== */
 
-const SERIES_LENGTH = 40; // points in the latency chart
-const TICK_MS = 1200; // how often the live data updates
-
-const REGIONS = [
-  { name: "US East", base: 24 },
-  { name: "EU West", base: 48 },
-  { name: "São Paulo", base: 71 },
-  { name: "Singapore", base: 94 },
-];
-
-const SCRIPT: TermLine[] = [
-  { type: "cmd", text: "pnpm install" },
-  { type: "ok", text: "312 packages installed in 2.1s" },
-  { type: "cmd", text: "pnpm build" },
-  { type: "info", text: "Compiling routes and components…" },
-  { type: "ok", text: "Compiled successfully in 4.2s" },
-  { type: "ok", text: "Type check passed, 0 errors" },
-  { type: "ok", text: "24 static pages generated" },
-  { type: "cmd", text: "deploy --prod" },
-  { type: "info", text: "Uploading 18 files…" },
-  { type: "ok", text: "Deployed to production" },
-  { type: "url", text: "https://app.example.dev" },
-];
+const SERIES_LENGTH = 24; // points in the live latency chart
+const TICK_MS = 2500; // how often the live server probe runs
+const GITHUB_REPO = "Innssaan/jevallene-portfolio";
+const PROD_URL = "https://innssaan.my.id";
 
 const TERM_VISIBLE = 11; // lines shown at once
 const LINE_STYLES: Record<LineType, { mark: string; markClass: string; textClass: string }> = {
@@ -72,13 +53,6 @@ const LINE_STYLES: Record<LineType, { mark: string; markClass: string; textClass
   info: { mark: "›", markClass: "text-slate-500", textClass: "text-slate-400" },
   url: { mark: "●", markClass: "text-cyan-300", textClass: "text-cyan-300 underline underline-offset-2" },
 };
-
-const LIGHTHOUSE = [
-  { label: "Perf", score: 98 },
-  { label: "A11y", score: 100 },
-  { label: "Best", score: 96 },
-  { label: "SEO", score: 100 },
-];
 
 // end of constants
 
@@ -125,9 +99,35 @@ function useAnimatedNumber(target: number, duration = 700): number {
   return value;
 }
 
-// A first batch of believable latency numbers (same every time, so the page is stable on load)
-function initialSeries(): number[] {
-  return Array.from({ length: SERIES_LENGTH }, (_, i) => 40 + Math.sin(i * 0.5) * 9 + ((i * 37) % 7));
+function getNavigationTiming(): PerformanceNavigationTiming | null {
+  if (typeof performance === "undefined") return null;
+  const entries = performance.getEntriesByType("navigation");
+  return (entries[0] as PerformanceNavigationTiming | undefined) ?? null;
+}
+
+function getNavigationTTFB(): number {
+  const nav = getNavigationTiming();
+  if (!nav) return 0;
+  return Math.max(1, Math.round(nav.responseStart - nav.requestStart));
+}
+
+async function probeEndpoint(
+  url: string,
+  init?: RequestInit
+): Promise<{ ms: number; status: number; vercelId: string | null; vercelCache: string | null } | null> {
+  const start = performance.now();
+  try {
+    const res = await fetch(url, { cache: "no-store", ...init });
+    const ms = Math.max(1, Math.round(performance.now() - start));
+    return {
+      ms,
+      status: res.status,
+      vercelId: res.headers.get("x-vercel-id"),
+      vercelCache: res.headers.get("x-vercel-cache"),
+    };
+  } catch {
+    return null;
+  }
 }
 
 // Smooth line through chart points
@@ -414,32 +414,98 @@ function LiveBadge() {
    ========================================================================== */
 
 function LatencyCard() {
-  const [series, setSeries] = useState<number[]>(initialSeries);
-  const [pings, setPings] = useState<number[]>(() => REGIONS.map((r) => r.base));
+  const [ttfb] = useState<number>(() => getNavigationTTFB());
+  const [series, setSeries] = useState<number[]>(() => {
+    const base = getNavigationTTFB() || 12;
+    return [base, base];
+  });
+  const [edgePop, setEdgePop] = useState<string>(() =>
+    typeof window !== "undefined" ? window.location.hostname : "edge"
+  );
+  const [endpoints, setEndpoints] = useState<Array<{ name: string; ms: number | null }>>(() => [
+    { name: "Origin Edge", ms: getNavigationTTFB() || null },
+    { name: "Server TTFB", ms: getNavigationTTFB() || null },
+    { name: "GitHub API", ms: null },
+    { name: "Cloudflare DNS", ms: null },
+  ]);
   const [hover, setHover] = useState<number | null>(null);
 
-  // A new reading every tick: the chart shifts left and the region numbers wobble a little
   useEffect(() => {
+    let cancelled = false;
+    let tickCount = 0;
+
+    const pingOrigin = async () => {
+      if (document.hidden) return;
+      const res = await probeEndpoint(`/?_ping=${Date.now()}`, { method: "HEAD" });
+      if (cancelled || !res) return;
+
+      if (res.vercelId) {
+        setEdgePop(res.vercelId.split("::")[0]);
+      }
+
+      setSeries((prev) => {
+        const next = [...prev, res.ms];
+        return next.length > SERIES_LENGTH ? next.slice(next.length - SERIES_LENGTH) : next;
+      });
+      setEndpoints((prev) =>
+        prev.map((item) => (item.name === "Origin Edge" ? { ...item, ms: res.ms } : item))
+      );
+    };
+
+    const pingExternal = async () => {
+      if (document.hidden) return;
+      const [gh, cf] = await Promise.all([
+        probeEndpoint(`https://api.github.com/repos/${GITHUB_REPO}`, { method: "HEAD" }),
+        probeEndpoint("https://cloudflare-dns.com/dns-query?name=innssaan.my.id&type=A", {
+          headers: { Accept: "application/dns-json" },
+        }),
+      ]);
+      if (cancelled) return;
+      setEndpoints((prev) =>
+        prev.map((item) => {
+          if (item.name === "GitHub API" && gh) return { ...item, ms: gh.ms };
+          if (item.name === "Cloudflare DNS" && cf) return { ...item, ms: cf.ms };
+          return item;
+        })
+      );
+    };
+
+    // Initial burst of real probes so the chart populates immediately
+    (async () => {
+      await pingOrigin();
+      void pingExternal();
+      for (let i = 0; i < 4; i++) {
+        await new Promise((r) => window.setTimeout(r, 180));
+        if (cancelled) return;
+        await pingOrigin();
+      }
+    })();
+
     const id = window.setInterval(() => {
-      setSeries((prev) => [...prev.slice(1), clamp(prev[prev.length - 1] + (Math.random() - 0.5) * 16, 22, 88)]);
-      setPings(REGIONS.map((r) => Math.round(clamp(r.base + (Math.random() - 0.5) * 14, 8, 140))));
+      tickCount += 1;
+      void pingOrigin();
+      if (tickCount % 4 === 0) void pingExternal();
     }, TICK_MS);
-    return () => window.clearInterval(id);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, []);
 
   const latest = Math.round(series[series.length - 1]);
   const average = Math.round(series.reduce((a, b) => a + b, 0) / series.length);
   const peak = Math.round(Math.max(...series));
-  const animatedLatest = useAnimatedNumber(latest, 500);
+  const animatedLatest = useAnimatedNumber(latest, 450);
 
-  // Chart points on a 0 to 100 grid (the vertical scale is fixed at 0 to 100 ms)
+  const maxScale = Math.max(60, Math.ceil((peak * 1.25) / 10) * 10);
   const points = series.map((v, i) => ({
     x: (i / (series.length - 1)) * 100,
-    y: 95 - (v / 100) * 85,
+    y: 95 - clamp(v / maxScale, 0, 1) * 85,
   }));
   const line = toSmoothPath(points);
   const area = `${line} L 100 100 L 0 100 Z`;
-  const shown = hover ?? series.length - 1;
+  const shown = Math.min(hover ?? series.length - 1, points.length - 1);
 
   const handleChartMove = (e: MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -449,7 +515,18 @@ function LatencyCard() {
 
   return (
     <GlowCard accent="indigo" className="min-h-[260px] sm:col-span-2 sm:min-h-[300px] lg:row-span-2">
-      <CardTitle right={<LiveBadge />}>Server latency</CardTitle>
+      <CardTitle
+        right={
+          <div className="flex items-center gap-2">
+            <span className="rounded-md border border-border/70 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              {edgePop}
+            </span>
+            <LiveBadge />
+          </div>
+        }
+      >
+        Server latency
+      </CardTitle>
 
       {/* Headline numbers */}
       <div className="mb-3 flex flex-wrap items-end gap-x-5 gap-y-2">
@@ -466,6 +543,11 @@ function LatencyCard() {
           <span>
             peak <b className="font-medium text-foreground">{peak}ms</b>
           </span>
+          {ttfb > 0 && (
+            <span>
+              ttfb <b className="font-medium text-foreground">{ttfb}ms</b>
+            </span>
+          )}
         </div>
       </div>
 
@@ -480,7 +562,7 @@ function LatencyCard() {
           preserveAspectRatio="none"
           className="absolute inset-0 h-full w-full overflow-visible"
           role="img"
-          aria-label="Server latency over the last minute"
+          aria-label="Live server latency chart"
         >
           <defs>
             <linearGradient id="tb-lat-fill" x1="0" y1="0" x2="0" y2="1">
@@ -504,7 +586,7 @@ function LatencyCard() {
             style={{ filter: "drop-shadow(0 0 8px rgba(var(--accent-rgb),0.7))" }}
           />
 
-          {hover !== null && (
+          {hover !== null && points[hover] && (
             <line x1={points[hover].x} x2={points[hover].x} y1="0" y2="100" stroke="rgba(var(--accent-rgb),0.5)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
           )}
         </svg>
@@ -515,7 +597,7 @@ function LatencyCard() {
           className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-red-200 bg-accent shadow-[0_0_12px_rgba(var(--accent-rgb),0.9)]"
           style={{ left: `${points[shown].x}%`, top: `${points[shown].y}%` }}
         />
-        {hover !== null && (
+        {hover !== null && points[hover] && (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-md"
@@ -524,29 +606,33 @@ function LatencyCard() {
               top: `calc(${points[hover].y}% - 14px)`,
             }}
           >
-            <div className="text-muted-foreground">{Math.round(((series.length - 1 - hover) * TICK_MS) / 1000)}s ago</div>
+            <div className="text-muted-foreground">
+              {hover === series.length - 1 ? "latest" : `${Math.round(((series.length - 1 - hover) * TICK_MS) / 1000)}s ago`}
+            </div>
             <div className="font-medium text-foreground">{Math.round(series[hover])} ms</div>
           </div>
         )}
       </div>
 
       <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-        <span>{Math.round((SERIES_LENGTH * TICK_MS) / 1000)}s ago</span>
+        <span>{series.length} probes ({Math.round((series.length * TICK_MS) / 1000)}s window)</span>
         <span>now</span>
       </div>
 
-      {/* Region pings */}
+      {/* Real endpoint pings */}
       <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-        {REGIONS.map((region, i) => {
-          const status = statusOf(pings[i]);
+        {endpoints.map((ep) => {
+          const status = ep.ms !== null ? statusOf(ep.ms) : { dot: "bg-slate-400", text: "text-muted-foreground" };
           return (
             <li
-              key={region.name}
+              key={ep.name}
               className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm transition-colors duration-200 hover:bg-muted/60"
             >
               <span className={cx("h-2 w-2 shrink-0 rounded-full", status.dot)} />
-              <span className="flex-1 text-foreground/85">{region.name}</span>
-              <span className={cx("text-xs [font-variant-numeric:tabular-nums]", status.text)}>{pings[i]} ms</span>
+              <span className="flex-1 text-foreground/85">{ep.name}</span>
+              <span className={cx("text-xs [font-variant-numeric:tabular-nums]", status.text)}>
+                {ep.ms !== null ? `${ep.ms} ms` : "—"}
+              </span>
             </li>
           );
         })}
@@ -563,19 +649,73 @@ function LatencyCard() {
    ========================================================================== */
 
 function TerminalCard() {
-  // step counts how many script lines have been printed; after the end it waits a moment, then starts over
-  const [step, setStep] = useState(1);
+  const [lines, setLines] = useState<TermLine[]>(() => [
+    { type: "cmd", text: "git log -n 4 --oneline" },
+    { type: "info", text: "Fetching live commits from GitHub…" },
+  ]);
+  const [step, setStep] = useState(2);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDeployLogs() {
+      const origin = typeof window !== "undefined" ? window.location.origin : PROD_URL;
+      const [commitsRes, originProbe] = await Promise.all([
+        fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=4`, {
+          cache: "no-store",
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        probeEndpoint(`/?_deploy_probe=${Date.now()}`, { method: "HEAD" }),
+      ]);
+
+      if (cancelled) return;
+
+      const built: TermLine[] = [{ type: "cmd", text: "git log -n 4 --oneline" }];
+
+      if (Array.isArray(commitsRes) && commitsRes.length > 0) {
+        for (const c of commitsRes.slice(0, 4)) {
+          const sha = typeof c?.sha === "string" ? c.sha.slice(0, 7) : "unknown";
+          const rawMsg = typeof c?.commit?.message === "string" ? c.commit.message.split("\n")[0] : "";
+          const msg = rawMsg.length > 36 ? `${rawMsg.slice(0, 35)}…` : rawMsg;
+          built.push({ type: "ok", text: `${sha} · ${msg}` });
+        }
+      } else {
+        built.push({ type: "info", text: `repo: ${GITHUB_REPO} (main)` });
+      }
+
+      built.push({ type: "cmd", text: `curl -I ${origin.replace(/^https?:\/\//, "")}` });
+
+      if (originProbe) {
+        const edge = originProbe.vercelId ? originProbe.vercelId.split("::")[0] : "origin";
+        const cache = originProbe.vercelCache ?? "LIVE";
+        built.push({ type: "info", text: `edge: ${edge} · cache: ${cache}` });
+        built.push({ type: "ok", text: `HTTP ${originProbe.status} OK in ${originProbe.ms}ms` });
+      } else {
+        built.push({ type: "info", text: "edge: origin probe unavailable" });
+      }
+
+      built.push({ type: "url", text: origin });
+      setLines(built);
+      setStep(1);
+    }
+
+    void loadDeployLogs();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setStep((s) => (s >= SCRIPT.length + 4 ? 1 : s + 1));
-    }, 850);
+      setStep((s) => (s >= lines.length + 5 ? 1 : s + 1));
+    }, 750);
     return () => window.clearInterval(id);
-  }, []);
+  }, [lines.length]);
 
-  const printed = Math.min(step, SCRIPT.length);
+  const printed = Math.min(step, lines.length);
   const first = Math.max(0, printed - TERM_VISIBLE);
-  const visible = SCRIPT.slice(first, printed);
+  const visible = lines.slice(first, printed);
 
   return (
     <GlowCard accent="fuchsia" className="min-h-[250px] sm:col-span-2 sm:min-h-[280px] lg:col-span-1 lg:row-span-2">
@@ -593,18 +733,18 @@ function TerminalCard() {
 
       <div
         className="flex flex-1 flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-white/10 bg-[#07080d] p-4 font-mono text-xs leading-relaxed text-slate-200"
-        aria-label="Deploy log"
+        aria-label="Live deployment & commit log"
         role="log"
       >
         {visible.map((line, i) => {
           const style = LINE_STYLES[line.type];
           const isLast = first + i === printed - 1;
           return (
-            <div key={first + i} className="tb-slide flex gap-2">
+            <div key={`${first + i}-${line.text}`} className="tb-slide flex gap-2">
               <span className={cx("w-3 shrink-0 text-center", style.markClass)}>{style.mark}</span>
               <span className={cx("min-w-0 break-words", style.textClass)}>
                 {line.text}
-                {isLast && printed < SCRIPT.length && <span className="tb-blink ml-1 inline-block h-3 w-1.5 translate-y-0.5 bg-fuchsia-300" />}
+                {isLast && printed < lines.length && <span className="tb-blink ml-1 inline-block h-3 w-1.5 translate-y-0.5 bg-fuchsia-300" />}
               </span>
             </div>
           );
@@ -618,19 +758,107 @@ function TerminalCard() {
 
 
 /* ==========================================================================
-   Card 3: Lighthouse scores (small)
+   Card 3: Real Web Vitals & Navigation Timing (small)
    ========================================================================== */
 
+interface VitalMetric {
+  label: string;
+  display: string;
+  pct: number;
+}
+
+function readRealVitals(): VitalMetric[] {
+  if (typeof performance === "undefined") {
+    return [
+      { label: "TTFB", display: "—", pct: 0 },
+      { label: "FCP", display: "—", pct: 0 },
+      { label: "DOM", display: "—", pct: 0 },
+      { label: "Cache", display: "—", pct: 0 },
+    ];
+  }
+
+  const nav = getNavigationTiming();
+  const paints = performance.getEntriesByType("paint");
+  const fcpEntry = paints.find((p) => p.name === "first-contentful-paint");
+  const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+
+  const ttfbMs = nav ? Math.max(1, Math.round(nav.responseStart - nav.requestStart)) : 0;
+  const fcpMs = fcpEntry ? Math.max(1, Math.round(fcpEntry.startTime)) : 0;
+  const domMs =
+    nav && nav.domContentLoadedEventEnd > 0
+      ? Math.max(1, Math.round(nav.domContentLoadedEventEnd - nav.fetchStart))
+      : 0;
+
+  const cachedCount = resources.filter((r) => r.transferSize === 0 && r.decodedBodySize > 0).length;
+  const cachePct = resources.length > 0 ? Math.round((cachedCount / resources.length) * 100) : 0;
+
+  const fmtMs = (ms: number) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+
+  return [
+    {
+      label: "TTFB",
+      display: ttfbMs > 0 ? fmtMs(ttfbMs) : "—",
+      pct: ttfbMs > 0 ? clamp(Math.round(100 - ttfbMs / 6), 18, 100) : 20,
+    },
+    {
+      label: "FCP",
+      display: fcpMs > 0 ? fmtMs(fcpMs) : "—",
+      pct: fcpMs > 0 ? clamp(Math.round(100 - fcpMs / 25), 18, 100) : 20,
+    },
+    {
+      label: "DOM",
+      display: domMs > 0 ? fmtMs(domMs) : "—",
+      pct: domMs > 0 ? clamp(Math.round(100 - domMs / 35), 18, 100) : 20,
+    },
+    {
+      label: "Cache",
+      display: resources.length > 0 ? `${cachePct}%` : "—",
+      pct: resources.length > 0 ? clamp(cachePct, 12, 100) : 15,
+    },
+  ];
+}
+
 function LighthouseCard() {
+  const [vitals, setVitals] = useState<VitalMetric[]>(() => readRealVitals());
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
 
+  useEffect(() => {
+    const refresh = () => setVitals(readRealVitals());
+    const t1 = window.setTimeout(refresh, 400);
+    const t2 = window.setTimeout(refresh, 1800);
+    window.addEventListener("load", refresh);
+
+    let obs: PerformanceObserver | null = null;
+    if (typeof PerformanceObserver !== "undefined") {
+      try {
+        obs = new PerformanceObserver(refresh);
+        obs.observe({ entryTypes: ["paint", "navigation"] });
+      } catch {
+        obs = null;
+      }
+    }
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.removeEventListener("load", refresh);
+      obs?.disconnect();
+    };
+  }, []);
+
   return (
     <GlowCard accent="emerald" className="min-h-[155px]">
-      <CardTitle>Lighthouse</CardTitle>
+      <CardTitle
+        right={
+          <span className="text-[11px] text-muted-foreground">Navigation API</span>
+        }
+      >
+        Web vitals
+      </CardTitle>
 
       <div className="flex flex-1 items-center justify-between gap-1">
-        {LIGHTHOUSE.map((item) => (
+        {vitals.map((item) => (
           <div key={item.label} className="group flex flex-col items-center gap-2">
             <div className="relative h-14 w-14">
               <svg viewBox="0 0 50 50" className="h-full w-full -rotate-90" aria-hidden="true">
@@ -648,13 +876,13 @@ function LighthouseCard() {
                   style={
                     {
                       "--from": `${circumference}`,
-                      "--to": `${circumference * (1 - item.score / 100)}`,
+                      "--to": `${circumference * (1 - item.pct / 100)}`,
                     } as CSSProperties
                   }
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-foreground">
-                {item.score}
+              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-foreground [font-variant-numeric:tabular-nums]">
+                {item.display}
               </span>
             </div>
             <span className="text-[11px] text-muted-foreground">{item.label}</span>
@@ -669,42 +897,84 @@ function LighthouseCard() {
 
 
 /* ==========================================================================
-   Card 4: Requests per second (small)
+   Card 4: Real Server Requests & Resource Timing (small)
    ========================================================================== */
 
+interface ResourceSnapshot {
+  count: number;
+  totalKB: number;
+  bars: number[];
+}
+
+function readResourceSnapshot(): ResourceSnapshot {
+  if (typeof performance === "undefined") {
+    return { count: 0, totalKB: 0, bars: [10, 10] };
+  }
+  const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+  const totalBytes = entries.reduce((sum, r) => sum + (r.transferSize || 0), 0);
+  const durations = entries
+    .slice(-16)
+    .map((r) => Math.max(2, Math.round(r.duration || 2)));
+
+  while (durations.length < 16) {
+    durations.unshift(4);
+  }
+
+  return {
+    count: entries.length,
+    totalKB: Math.round(totalBytes / 1024),
+    bars: durations,
+  };
+}
+
 function ThroughputCard() {
-  const [bars, setBars] = useState<number[]>(() =>
-    Array.from({ length: 16 }, (_, i) => 1500 + Math.sin(i * 0.8) * 300 + ((i * 53) % 5) * 40)
-  );
+  const [snap, setSnap] = useState<ResourceSnapshot>(() => readResourceSnapshot());
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setBars((prev) => [...prev.slice(1), clamp(prev[prev.length - 1] + (Math.random() - 0.45) * 420, 900, 2600)]);
-    }, TICK_MS);
-    return () => window.clearInterval(id);
+    const sync = () => setSnap(readResourceSnapshot());
+    const t = window.setTimeout(sync, 500);
+
+    let obs: PerformanceObserver | null = null;
+    if (typeof PerformanceObserver !== "undefined") {
+      try {
+        obs = new PerformanceObserver(sync);
+        obs.observe({ entryTypes: ["resource"] });
+      } catch {
+        obs = null;
+      }
+    }
+
+    return () => {
+      window.clearTimeout(t);
+      obs?.disconnect();
+    };
   }, []);
 
-  const latest = bars[bars.length - 1];
-  const animated = useAnimatedNumber(latest, 600);
-  const max = Math.max(...bars);
+  const animated = useAnimatedNumber(snap.count, 500);
+  const max = Math.max(...snap.bars, 1);
 
   return (
     <GlowCard accent="cyan" className="min-h-[155px]">
-      <CardTitle right={<LiveBadge />}>Requests / sec</CardTitle>
+      <CardTitle right={<LiveBadge />}>Server requests</CardTitle>
 
-      <div className="text-4xl font-semibold leading-none tracking-tight text-foreground [font-variant-numeric:tabular-nums]">
-        {Math.round(animated).toLocaleString("en-US")}
+      <div className="flex items-baseline gap-2.5">
+        <div className="text-4xl font-semibold leading-none tracking-tight text-foreground [font-variant-numeric:tabular-nums]">
+          {Math.round(animated).toLocaleString("en-US")}
+        </div>
+        <span className="text-xs text-muted-foreground [font-variant-numeric:tabular-nums]">
+          {snap.totalKB > 0 ? `${snap.totalKB} KB` : "cached"} · {snap.bars[snap.bars.length - 1]}ms
+        </span>
       </div>
 
       <div className="mt-auto flex h-14 items-end gap-1" aria-hidden="true">
-        {bars.map((v, i) => (
+        {snap.bars.map((v, i) => (
           <span
             key={i}
             className={cx(
-              "flex-1 rounded-sm transition-all duration-700 ease-out",
-              i === bars.length - 1 ? "bg-cyan-500 dark:bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" : "bg-cyan-500/25 dark:bg-cyan-400/30"
+              "flex-1 rounded-sm transition-all duration-500 ease-out",
+              i === snap.bars.length - 1 ? "bg-cyan-500 dark:bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" : "bg-cyan-500/25 dark:bg-cyan-400/30"
             )}
-            style={{ height: `${Math.max((v / max) * 100, 8)}%` }}
+            style={{ height: `${Math.max((v / max) * 100, 10)}%` }}
           />
         ))}
       </div>
