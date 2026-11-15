@@ -546,7 +546,7 @@ export function TeamLanyardRail({
     const lift = s.lift[i] ?? 0;
     const pop = s.pop[i] ?? 0;
     const strapBase = Math.max(1, g.straps[i] ?? 96);
-    const swayX = s.drag === i ? 0 : -Math.sin((sw * Math.PI) / 180) * strapBase * 0.35;
+    const swayX = s.drag === i ? 0 : -Math.sin((sw * Math.PI) / 180) * strapBase * 0.85;
     const clipX = (s.ox[i] ?? 0) + swayX;
     const clipY = (s.oy[i] ?? 0) - 4 * lift;
     const st = clipY;
@@ -609,9 +609,10 @@ export function TeamLanyardRail({
       swivel.style.transform = `rotate(${clamp(startAngle * 0.55, -28, 28).toFixed(2)}deg)`;
     }
 
-    const endTangentAngle = (Math.atan2(bx - c2x, Math.max(8, by - c2y)) * -180) / Math.PI;
-    const tautBlend = clamp(1 - slack / 24, 0, 1);
-    const cardAngle = endTangentAngle * 0.35 * tautBlend + ((s.beta[i] ?? 0) - sw) * 0.6 + (s.rz[i] ?? 0);
+    const endTangentAngle = (Math.atan2(bx - c2x, Math.max(12, by - c2y)) * -180) / Math.PI;
+    const tautBlend = clamp(1 - slack / 28, 0, 1);
+    const inertiaTilt = clamp(((s.beta[i] ?? 0) - sw) * 0.18, -10, 10);
+    const cardAngle = endTangentAngle * 0.45 * tautBlend + inertiaTilt + (s.rz[i] ?? 0);
 
     const hang = hangs.current[i];
     if (hang) {
@@ -843,8 +844,8 @@ export function TeamLanyardRail({
       }
       s.tx[i] = tx;
       const front = flipped === i || active === i;
-      s.tr[i] = flipped === i ? 180 : active === i ? 0 : REST_Y[i % REST_Y.length] ?? 0;
-      s.tz[i] = front ? 0 : REST_Z[i % REST_Z.length] ?? 0;
+      s.tr[i] = flipped === i ? 180 : front || seamless ? 0 : REST_Y[i % REST_Y.length] ?? 0;
+      s.tz[i] = front || seamless ? 0 : REST_Z[i % REST_Z.length] ?? 0;
       s.tl[i] = front ? 1 : 0;
       s.tp[i] = flipped === i ? 1 : 0;
       if (fresh) {
@@ -1054,10 +1055,9 @@ export function TeamLanyardRail({
           s.x[i] = clamp(event.clientX - stage.getBoundingClientRect().left - s.grab, lo, hi);
           s.vx[i] = p.v * 1000;
         }
-        const angle = clamp((-Math.atan2(clampedOx, Math.max(40, strapLen + clampedOy)) * 180) / Math.PI, -38, 38);
-        s.vsw[i] = ((angle - (s.sw[i] ?? 0)) / elapsed) * 1000 * 0.45;
-        s.sw[i] = angle;
-        s.trx[i] = clamp(dy * 0.14, -22, 22);
+        s.vsw[i] = 0;
+        s.sw[i] = 0;
+        s.trx[i] = clamp(dy * 0.12, -18, 18);
         const pullRatio = clamp(Math.max(0, clampedOy) / Math.max(1, L.geo.maxStretch), 0, 1);
         const twistBias = (i % 2 === 0 ? 1 : -1) * pullRatio * 28;
         s.ttiltY[i] = clamp(-p.v * 30 + twistBias, -48, 48);
