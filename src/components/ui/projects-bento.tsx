@@ -14,6 +14,7 @@ export interface ProjectItem {
   category: Exclude<ProjectCategory, "all">;
   categoryLabel: { id: string; en: string };
   image: string;
+  images?: string[];
   imageAlt: string;
   gradientFallback: string;
   title: string;
@@ -146,8 +147,14 @@ const PROJECTS: ProjectItem[] = [
     id: "sannverse-visual-stories",
     category: "visual",
     categoryLabel: { id: "Foto & Video", en: "Photo & Video" },
-    image:
-      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1200&q=80",
+    image: "/projects/sannverse-1.jpg",
+    images: [
+      "/projects/sannverse-1.jpg",
+      "/projects/sannverse-2.jpg",
+      "/projects/sannverse-3.jpg",
+      "/projects/sannverse-4.jpg",
+      "/projects/sannverse-5.jpg",
+    ],
     imageAlt: "Produksi fotografi dan videografi sinematik Sannverse Visual Stories",
     gradientFallback: "from-rose-500 via-fuchsia-500 to-indigo-500",
     title: "Sannverse Visual Stories",
@@ -233,6 +240,7 @@ export default function ProjectsBento({
     title: project.title,
     subtitle: project.metrics,
     image: project.image,
+    images: project.images,
     imageAlt: project.imageAlt,
     gradientFallback: project.gradientFallback,
     description: project.fullDescription[lang],

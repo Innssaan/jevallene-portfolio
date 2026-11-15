@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -25,6 +25,7 @@ export interface DetailLightboxItem {
   title: string;
   subtitle?: string;
   image?: string;
+  images?: string[];
   imageAlt?: string;
   gradientFallback?: string;
   visualAccentRgb?: string;
@@ -57,15 +58,45 @@ export function DetailLightboxModal({
 }: DetailLightboxModalProps) {
   const [imageExpanded, setImageExpanded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const swipeStartX = useRef<number | null>(null);
 
   const isOpen = activeIndex !== null && activeIndex >= 0 && activeIndex < items.length;
   const item = isOpen ? items[activeIndex] : null;
   const hasMultiple = items.length > 1;
+  const gallery = item?.images && item.images.length > 0 ? item.images : item?.image ? [item.image] : [];
+  const hasGallery = gallery.length > 1;
 
   useEffect(() => {
     setImageExpanded(false);
     setImgError(false);
+    setSlideIndex(0);
+    setDragOffset(0);
   }, [activeIndex, item?.id]);
+
+  const handleHeroPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (!hasGallery) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+    swipeStartX.current = e.clientX;
+  };
+
+  const handleHeroPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!hasGallery || swipeStartX.current === null) return;
+    setDragOffset(e.clientX - swipeStartX.current);
+  };
+
+  const handleHeroPointerEnd = (e: PointerEvent<HTMLDivElement>) => {
+    if (!hasGallery || swipeStartX.current === null) return;
+    const dx = e.clientX - swipeStartX.current;
+    swipeStartX.current = null;
+    setDragOffset(0);
+    if (dx < -40) {
+      setSlideIndex((prev) => (prev + 1) % gallery.length);
+    } else if (dx > 40) {
+      setSlideIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -118,7 +149,12 @@ export function DetailLightboxModal({
           >
             {/* Top-right floating controls */}
             <div className="absolute right-3 top-3 z-30 flex items-center gap-2">
-              {item.image && !imgError && (
+              {hasGallery && !imgError && (
+                <span className="rounded-full border border-white/25 bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
+                  {slideIndex + 1} / {gallery.length}
+                </span>
+              )}
+              {gallery.length > 0 && !imgError && (
                 <button
                   type="button"
                   onClick={() => setImageExpanded((prev) => !prev)}
@@ -163,23 +199,63 @@ export function DetailLightboxModal({
             <div className="flex-1 overflow-y-auto">
               {/* Large Image / Visual Showcase */}
               <div
-                className={`relative flex w-full items-end overflow-hidden border-b border-white/10 bg-gradient-to-br ${
+                onPointerDown={handleHeroPointerDown}
+                onPointerMove={handleHeroPointerMove}
+                onPointerUp={handleHeroPointerEnd}
+                onPointerCancel={handleHeroPointerEnd}
+                className={`relative flex w-full select-none items-end overflow-hidden border-b border-white/10 bg-gradient-to-br ${
                   item.gradientFallback ?? "from-neutral-900 via-[#1b1216] to-black"
                 } transition-all duration-300 ${
+                  hasGallery ? "cursor-grab active:cursor-grabbing touch-pan-y " : ""
+                }${
                   imageExpanded ? "h-[58vh] sm:h-[65vh]" : "h-56 sm:h-72 md:h-84"
                 }`}
               >
-                {item.image && !imgError && (
-                  <img
-                    src={item.image}
-                    alt={item.imageAlt ?? item.title}
-                    onError={() => setImgError(true)}
-                    className={`absolute inset-0 h-full w-full transition-all duration-500 ${
-                      imageExpanded
-                        ? "bg-black/95 object-contain p-2"
-                        : "object-cover"
-                    }`}
-                  />
+                {gallery.length > 0 && !imgError && (
+                  <div
+                    className="absolute inset-0 flex h-full w-full transition-transform duration-300 ease-out"
+                    style={{
+                      transform: `translateX(calc(-${slideIndex * 100}% + ${dragOffset}px))`,
+                      transitionDuration: dragOffset !== 0 ? "0ms" : undefined,
+                    }}
+                  >
+                    {gallery.map((src, idx) => (
+                      <div key={src + idx} className="relative h-full w-full shrink-0">
+                        <img
+                          src={src}
+                          alt={`${item.imageAlt ?? item.title}${hasGallery ? ` (${idx + 1}/${gallery.length})` : ""}`}
+                          draggable={false}
+                          onError={() => setImgError(true)}
+                          className={`h-full w-full transition-all duration-500 ${
+                            imageExpanded
+                              ? "bg-black/95 object-contain p-2"
+                              : "object-cover"
+                          }`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {hasGallery && !imgError && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSlideIndex((prev) => (prev - 1 + gallery.length) % gallery.length)}
+                      aria-label={lang === "en" ? "Previous photo" : "Foto sebelumnya"}
+                      className="absolute left-3 top-1/2 z-20 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition-all hover:scale-105 hover:border-accent hover:bg-accent"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSlideIndex((prev) => (prev + 1) % gallery.length)}
+                      aria-label={lang === "en" ? "Next photo" : "Foto berikutnya"}
+                      className="absolute right-3 top-1/2 z-20 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition-all hover:scale-105 hover:border-accent hover:bg-accent"
+                    >
+                      <ChevronRight className="size-4" />
+                    </button>
+                  </>
                 )}
 
                 {/* Ambient radial glow when visualAccentRgb is provided */}
@@ -224,6 +300,25 @@ export function DetailLightboxModal({
                     <Sparkles className="size-3.5 text-accent" />
                     {item.eyebrow}
                   </span>
+
+                  {hasGallery && !imgError && (
+                    <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-2.5 py-1.5 backdrop-blur-md">
+                      {gallery.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSlideIndex(idx)}
+                          aria-label={`${lang === "en" ? "Photo" : "Foto"} ${idx + 1}`}
+                          className={`h-1.5 cursor-pointer rounded-full transition-all ${
+                            idx === slideIndex
+                              ? "w-4 bg-white"
+                              : "w-1.5 bg-white/45 hover:bg-white/75"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
                   {item.badge && (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/55 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
                       <span className="tb-pulse h-1.5 w-1.5 rounded-full bg-[#35C46A]" />
