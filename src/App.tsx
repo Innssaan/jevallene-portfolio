@@ -1003,6 +1003,7 @@ export default function App() {
                 <TeamLanyardRail
                   seamless
                   autoplay
+                  introTrigger={!isLoading}
                   items={PROFILE_LANYARD}
                   caption={
                     lang === "en"

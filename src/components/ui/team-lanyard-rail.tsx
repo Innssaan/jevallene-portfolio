@@ -59,6 +59,8 @@ export interface TeamLanyardRailProps extends React.ComponentProps<"section"> {
   labels?: TeamLanyardRailLabels;
   /** Hides the card backdrop, dot grid, and floating rail so the lanyard hangs seamlessly from a navbar or container edge. */
   seamless?: boolean;
+  /** Triggers the elastic drop-and-bounce entrance once when true (e.g. after page loading finishes). */
+  introTrigger?: boolean;
 }
 
 const RATIO = 96 / 62;
@@ -438,6 +440,7 @@ export function TeamLanyardRail({
   onFlippedChange,
   labels = DEFAULT_LABELS,
   seamless = false,
+  introTrigger = true,
   className,
   ...rest
 }: TeamLanyardRailProps) {
@@ -951,6 +954,21 @@ export function TeamLanyardRail({
   const idleAutoFlip = React.useRef(false);
   const idleTimer = React.useRef(0);
   const idleReturnTimer = React.useRef(0);
+  const introPlayedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!introTrigger || !ready || reduced || count === 0 || introPlayedRef.current) return;
+    introPlayedRef.current = true;
+    const s = sim.current;
+    // Start pulled up near the top and release with downward velocity for an elastic bounce ("mumbul-mumbul")
+    s.oy[0] = -108;
+    s.voy[0] = 660;
+    s.vox[0] = 28;
+    s.vsw[0] = 16;
+    s.vrx[0] = -95;
+    paint(0);
+    kick();
+  }, [introTrigger, ready, reduced, count, paint, kick]);
 
   const stop = React.useCallback(() => {
     window.clearTimeout(idleTimer.current);
@@ -995,12 +1013,8 @@ export function TeamLanyardRail({
       }, delayMs);
     };
 
-    if (!playing) {
-      // Resume gentle idle preview after user stops interacting
-      scheduleIdle(6500);
-    } else {
-      scheduleIdle(2400);
-    }
+    // Stay in normal gentle idle for ~7.5s before auto-flipping to show the back
+    scheduleIdle(7500);
 
     return () => {
       cancelled = true;
