@@ -999,7 +999,7 @@ export default function App() {
                 </div>
               </Parallax>
 
-              <div className="hero-visual reveal self-start relative z-30 mx-auto w-full max-w-[380px] lg:max-w-[460px] mt-0 pt-0 lg:-mt-[62px]">
+              <div className="hero-visual reveal self-start relative z-30 mx-auto w-full max-w-[380px] lg:max-w-[500px] mt-0 pt-0 lg:-mt-[62px]">
                 <TeamLanyardRail
                   seamless
                   autoplay
