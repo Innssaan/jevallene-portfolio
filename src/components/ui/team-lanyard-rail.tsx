@@ -513,8 +513,9 @@ export function TeamLanyardRail({
     if (!stage) return;
     const measure = (width: number) => {
       const n = Math.max(1, live.current.count);
-      const maxAllowedW = n === 1 && width >= 360 ? 242 : MAX_W;
-      const railW = Math.min(maxAllowedW, (width - 40) / (n * RAIL_PITCH_MIN + 0.4));
+      const maxAllowedW = n === 1 ? (width >= 360 ? 242 : 184) : MAX_W;
+      const pitchW = n === 1 ? (width - 24) / 1.41 : (width - 40) / (n * RAIL_PITCH_MIN + 0.4);
+      const railW = Math.min(maxAllowedW, pitchW);
       const carousel = railW < MIN_RAIL_W;
       const W = Math.round((carousel ? clamp(width * 0.3, 96, 118) : railW) * 4) / 4;
       setSize((old) => (Math.abs(old.width - width) < 0.5 && old.carousel === carousel && old.W === W ? old : { width, W, carousel }));
