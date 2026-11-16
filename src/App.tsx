@@ -1007,12 +1007,12 @@ export default function App() {
                   items={PROFILE_LANYARD}
                   caption={
                     lang === "en"
-                      ? "Pull the lanyard or click the card to flip"
-                      : "Tarik lanyard atau sentuh kartu untuk melihat profil lengkap"
+                      ? "Pull the lanyard or click the card to flip · Scroll to explore more"
+                      : "Tarik lanyard atau sentuh kartu · Scroll untuk melihat selengkapnya"
                   }
                   labels={{
-                    flip: "Klik atau tekan Enter untuk membalik kartu",
-                    back: "Klik lagi atau tekan Esc untuk kembali",
+                    flip: "Klik atau tekan Enter untuk membalik kartu · Scroll untuk melihat selengkapnya",
+                    back: "Klik lagi atau tekan Esc untuk kembali · Scroll untuk melihat selengkapnya",
                     show: "Tampilkan",
                   }}
                 />
