@@ -732,7 +732,7 @@ function TerminalCard() {
       </CardTitle>
 
       <div
-        className="flex flex-1 flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-white/10 bg-[#07080d] p-4 font-mono text-xs leading-relaxed text-slate-200"
+        className="flex h-[270px] flex-col justify-start gap-1.5 overflow-hidden rounded-xl border border-white/10 bg-[#07080d] p-4 font-mono text-xs leading-relaxed text-slate-200 sm:h-[290px] lg:h-auto lg:min-h-[300px] lg:flex-1"
         aria-label="Live deployment & commit log"
         role="log"
       >
