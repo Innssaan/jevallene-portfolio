@@ -1039,7 +1039,7 @@ export default function App() {
               <Parallax offset={14} delay={0.06} variant="left">
                 <div className="about-text reveal">
                   <div className="mb-7 flex flex-col sm:flex-row sm:items-end gap-5">
-                    <SpiderClonePortrait onOpenFullscreen={() => setPhotoLightboxOpen(true)} />
+                    <SpiderClonePortrait />
                     <div className="min-w-0 flex-1 pb-2">
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span className="text-xl font-bold tracking-tight text-neutral-950 dark:text-[#FAFAFA]">

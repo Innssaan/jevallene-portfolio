@@ -1,15 +1,13 @@
 import * as React from "react";
 
-interface SpiderClonePortraitProps {
-  onOpenFullscreen?: () => void;
-}
-
-export function SpiderClonePortrait({ onOpenFullscreen }: SpiderClonePortraitProps) {
-  const containerRef = React.useRef<HTMLButtonElement>(null);
+export function SpiderClonePortrait() {
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const [hover, setHover] = React.useState(false);
+  const [pinned, setPinned] = React.useState(false);
   const [cursor, setCursor] = React.useState({ nx: 0, ny: 0 });
+  const active = hover || pinned;
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -20,34 +18,35 @@ export function SpiderClonePortrait({ onOpenFullscreen }: SpiderClonePortraitPro
   };
 
   return (
-    <button
+    <div
       ref={containerRef}
-      type="button"
-      onClick={onOpenFullscreen}
+      onClick={() => setPinned((prev) => !prev)}
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={() => {
+        setHover(false);
+        setPinned(false);
+      }}
       onMouseMove={handleMouseMove}
-      title="Arahkan kursor untuk siluet Spider-Man · Klik untuk fullscreen"
-      className="group relative h-52 w-52 sm:h-60 sm:w-60 shrink-0 cursor-zoom-in self-start focus:outline-none select-none"
+      className="group relative h-52 w-52 sm:h-60 sm:w-60 shrink-0 cursor-pointer self-start select-none"
     >
       {/* Ambient crimson Spider-Verse glow */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-4 bottom-2 top-8 rounded-full bg-accent/20 blur-2xl transition-all duration-300"
         style={{
-          opacity: hover ? 1 : 0.55,
-          transform: hover ? "scale(1.1)" : "scale(1)",
+          opacity: active ? 1 : 0.55,
+          transform: active ? "scale(1.1)" : "scale(1)",
         }}
       />
 
-      {/* Spider-Sense electric arcs above head on hover */}
+      {/* Spider-Sense electric arcs above head */}
       <svg
         aria-hidden="true"
         viewBox="0 0 120 40"
         className="pointer-events-none absolute -top-3 left-1/2 z-30 h-9 w-28 -translate-x-1/2 transition-all duration-300"
         style={{
-          opacity: hover ? 1 : 0,
-          transform: hover ? "translateY(0) scale(1)" : "translateY(6px) scale(0.85)",
+          opacity: active ? 1 : 0,
+          transform: active ? "translateY(0) scale(1)" : "translateY(6px) scale(0.85)",
         }}
       >
         <path
@@ -92,9 +91,9 @@ export function SpiderClonePortrait({ onOpenFullscreen }: SpiderClonePortraitPro
         draggable={false}
         className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain object-bottom transition-all duration-300 ease-out"
         style={{
-          opacity: hover ? 0.35 : 0,
+          opacity: active ? 0.35 : 0,
           filter: "drop-shadow(0 0 14px rgba(34,211,238,0.55)) hue-rotate(180deg) brightness(1.3)",
-          transform: hover
+          transform: active
             ? `translate(${12 - cursor.nx * 5}px, ${3 - cursor.ny * 3}px) scale(1.02)`
             : "translate(0px, 0px) scale(1)",
         }}
@@ -108,9 +107,9 @@ export function SpiderClonePortrait({ onOpenFullscreen }: SpiderClonePortraitPro
         draggable={false}
         className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain object-bottom transition-all duration-300 ease-out"
         style={{
-          opacity: hover ? 0.92 : 0,
+          opacity: active ? 0.92 : 0,
           filter: "drop-shadow(0 0 18px rgba(var(--accent-rgb),0.55))",
-          transform: hover
+          transform: active
             ? `translate(${-16 - cursor.nx * 7}px, ${-3 - cursor.ny * 4}px) scale(1.03)`
             : "translate(0px, 0px) scale(1)",
         }}
@@ -123,11 +122,11 @@ export function SpiderClonePortrait({ onOpenFullscreen }: SpiderClonePortraitPro
         draggable={false}
         className="relative z-10 h-full w-full object-contain object-bottom drop-shadow-[0_14px_28px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out"
         style={{
-          transform: hover
+          transform: active
             ? `translate(${cursor.nx * 3}px, ${cursor.ny * 2}px) scale(1.02)`
             : "translate(0px, 0px) scale(1)",
         }}
       />
-    </button>
+    </div>
   );
 }
