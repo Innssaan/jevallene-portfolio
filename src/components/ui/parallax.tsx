@@ -79,7 +79,8 @@ export function Parallax({
     offset: ["start end", "end start"],
   });
 
-  const rawY = useTransform(scrollYProgress, [0, 1], [offset, -offset]);
+  const effectiveOffset = isDesktop ? offset : Math.round(offset * 0.55);
+  const rawY = useTransform(scrollYProgress, [0, 1], [effectiveOffset, -effectiveOffset]);
   const y = useSpring(rawY, { stiffness: 150, damping: 28, mass: 0.45 });
 
   const rawScale = useTransform(
@@ -100,15 +101,11 @@ export function Parallax({
       style={variant === "tilt" && isDesktop ? { perspective: 1000 } : undefined}
     >
       <motion.div
-        style={
-          isDesktop
-            ? {
-                y,
-                scale: variant === "zoom" ? scale : undefined,
-                willChange: "transform",
-              }
-            : undefined
-        }
+        style={{
+          y,
+          scale: variant === "zoom" ? scale : undefined,
+          willChange: "transform",
+        }}
       >
         {immediate ? (
           children
@@ -116,9 +113,9 @@ export function Parallax({
           <motion.div
             initial={REVEAL_INITIAL[variant]}
             whileInView={REVEAL_TARGET[variant]}
-            viewport={{ once: true, amount: 0.08 }}
+            viewport={{ once: false, amount: "some" }}
             transition={{
-              duration: 0.7,
+              duration: 0.65,
               delay,
               ease: [0.22, 1, 0.36, 1],
             }}
