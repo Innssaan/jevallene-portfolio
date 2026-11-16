@@ -714,8 +714,8 @@ function TerminalCard() {
   }, [lines.length]);
 
   const printed = Math.min(step, lines.length);
-  const first = Math.max(0, lines.length - TERM_VISIBLE);
-  const visible = lines.slice(first);
+  const first = Math.max(0, printed - TERM_VISIBLE);
+  const visible = lines.slice(first, printed);
 
   return (
     <GlowCard accent="fuchsia" className="min-h-[250px] sm:col-span-2 sm:min-h-[280px] lg:col-span-1 lg:row-span-2">
@@ -732,24 +732,15 @@ function TerminalCard() {
       </CardTitle>
 
       <div
-        className="flex h-[275px] shrink-0 flex-col justify-start gap-1.5 overflow-hidden rounded-xl border border-white/10 bg-[#07080d] p-4 font-mono text-xs leading-relaxed text-slate-200 sm:h-[295px] lg:h-[320px] lg:flex-1 [overflow-anchor:none]"
+        className="flex h-[275px] shrink-0 flex-col justify-end gap-1.5 overflow-hidden rounded-xl border border-white/10 bg-[#07080d] p-4 font-mono text-xs leading-relaxed text-slate-200 sm:h-[295px] lg:h-[320px] lg:flex-1 [overflow-anchor:none]"
         aria-label="Live deployment & commit log"
         role="log"
       >
         {visible.map((line, i) => {
           const style = LINE_STYLES[line.type];
-          const globalIdx = first + i;
-          const isShown = globalIdx < printed;
-          const isLast = globalIdx === printed - 1;
+          const isLast = first + i === printed - 1;
           return (
-            <div
-              key={`${globalIdx}-${line.text}`}
-              aria-hidden={!isShown}
-              className={cx(
-                "flex gap-2 transition-all duration-300",
-                isShown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-1 opacity-0"
-              )}
-            >
+            <div key={`${first + i}-${line.text}`} className="tb-slide flex gap-2">
               <span className={cx("w-3 shrink-0 text-center", style.markClass)}>{style.mark}</span>
               <span className={cx("min-w-0 truncate", style.textClass)}>
                 {line.text}
